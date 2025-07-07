@@ -124,6 +124,68 @@ app.get('/test-replicate', async (req, res) => {
   }
 });
 
+// Test specific Replicate model endpoint
+app.get('/test-flux-model', async (req, res) => {
+  try {
+    console.log('🔍 Testing FLUX model access...');
+    
+    if (!process.env.REPLICATE_API_TOKEN) {
+      return res.status(500).json({
+        error: 'Replicate API token not configured'
+      });
+    }
+
+    const replicate = new Replicate({
+      auth: process.env.REPLICATE_API_TOKEN,
+    });
+    
+    // Test with the specific model we're using
+    const model = 'black-forest-labs/flux-kontext-pro';
+    console.log(`🔧 Testing model: ${model}`);
+
+    // Try to get model info
+    const modelInfo = await replicate.models.get(model);
+    console.log('✅ Model info retrieved successfully');
+    
+    // Try a simple prediction
+    console.log('🎨 Testing simple prediction...');
+    const testInput = {
+      prompt: "A simple red circle on white background",
+      aspect_ratio: "1:1"
+    };
+    
+    const prediction = await replicate.predictions.create({
+      model: model,
+      input: testInput
+    });
+    
+    console.log('✅ Prediction created:', prediction.id);
+    
+    res.json({
+      status: 'success',
+      message: 'FLUX model test successful',
+      model: model,
+      predictionId: prediction.id,
+      predictionStatus: prediction.status,
+      modelInfo: {
+        name: modelInfo.name,
+        description: modelInfo.description,
+        visibility: modelInfo.visibility
+      }
+    });
+  } catch (error) {
+    console.error('❌ FLUX model test failed:', error);
+    
+    res.status(500).json({
+      error: 'FLUX model test failed',
+      details: error.message,
+      errorType: error.constructor.name,
+      errorStatus: error.status || 'unknown',
+      model: 'black-forest-labs/flux-kontext-pro'
+    });
+  }
+});
+
 // Root endpoint
 app.get('/', (req, res) => {
   res.json({
@@ -132,6 +194,7 @@ app.get('/', (req, res) => {
     endpoints: {
       'GET /health': 'Health check',
       'GET /test-replicate': 'Test Replicate connection',
+      'GET /test-flux-model': 'Test FLUX model specifically',
       'POST /api/analyze-product': 'Analyze product with Gemini',
       'POST /api/generate-brand-prompt': 'Generate brand-specific prompt',
       'POST /api/generate-brand-images': 'Generate brand variations',

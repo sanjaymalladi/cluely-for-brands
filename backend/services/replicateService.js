@@ -388,6 +388,13 @@ async function generateSingleImage(productImageUrls, prompt, brandName, variatio
       
     } catch (error) {
       console.error(`❌ Attempt ${attempt} failed for ${brandName} variation ${variationNumber}:`, error.message);
+      console.error(`❌ Error details:`, {
+        name: error.name,
+        message: error.message,
+        status: error.status,
+        response: error.response?.data || error.response,
+        stack: error.stack?.split('\n').slice(0, 3).join('\n')
+      });
       lastError = error;
       
       if (attempt < MAX_RETRIES) {
