@@ -9,7 +9,9 @@ interface AnalyzeProductResponse {
 }
 
 interface GenerateBrandPromptResponse {
-  prompt: string;
+  brandPrompt: string;
+  brandName: string;
+  success: boolean;
 }
 
 interface GenerateBrandImagesResponse {

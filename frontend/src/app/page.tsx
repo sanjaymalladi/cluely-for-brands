@@ -119,7 +119,7 @@ export default function Home() {
       // Generate brand images via backend using all uploaded images
       const imagesResponse = await api.generateBrandImages(
         allImageUrls,
-        brandPromptResponse.prompt,
+        brandPromptResponse.brandPrompt,
         selectedBrand.id,
         4
       );
