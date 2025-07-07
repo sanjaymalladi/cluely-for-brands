@@ -128,12 +128,14 @@ async function generateSingleImageWithRetry(productImageUrls, prompt, brandName,
           result = await generateWithStandardMethod(productImageUrls, prompt, brandName, variationNumber);
           break;
         case 2:
-          // Try with different headers
-          result = await generateWithCustomHeaders(productImageUrls, prompt, brandName, variationNumber);
+          // Try with different headers and longer delay
+          await sleep(5000); // 5 second delay
+          result = await generateWithCloudflareBypass(productImageUrls, prompt, brandName, variationNumber);
           break;
         case 3:
-          // Try with direct HTTP request
-          result = await generateWithDirectHTTP(productImageUrls, prompt, brandName, variationNumber);
+          // Try with maximum bypass techniques
+          await sleep(10000); // 10 second delay
+          result = await generateWithMaximalBypass(productImageUrls, prompt, brandName, variationNumber);
           break;
         default:
           result = await generateWithStandardMethod(productImageUrls, prompt, brandName, variationNumber);
@@ -143,11 +145,30 @@ async function generateSingleImageWithRetry(productImageUrls, prompt, brandName,
       
     } catch (error) {
       console.error(`❌ Attempt ${attempt} failed for ${brandName} variation ${variationNumber}:`, error.message);
+      
+      // Enhanced error logging for Cloudflare issues
+      if (error.message.includes('403') || error.message.includes('Forbidden') || error.message.includes('Cloudflare')) {
+        console.error(`🚫 CLOUDFLARE BLOCK DETECTED:`, {
+          attempt: attempt,
+          brandName: brandName,
+          variation: variationNumber,
+          errorMessage: error.message,
+          timestamp: new Date().toISOString()
+        });
+        
+        // Extract Cloudflare Ray ID if present
+        const rayIdMatch = error.message.match(/cf-ray[:\s]+([a-f0-9-]+)/i);
+        if (rayIdMatch) {
+          console.error(`☁️ Cloudflare Ray ID: ${rayIdMatch[1]}`);
+        }
+      }
+      
       lastError = error;
       
       if (attempt < MAX_RETRIES) {
-        console.log(`⏳ Waiting ${RETRY_DELAY}ms before retry...`);
-        await sleep(RETRY_DELAY);
+        const delayTime = RETRY_DELAY * attempt; // Exponential backoff
+        console.log(`⏳ Waiting ${delayTime}ms before retry...`);
+        await sleep(delayTime);
       }
     }
   }
@@ -175,29 +196,11 @@ async function generateWithStandardMethod(productImageUrls, prompt, brandName, v
 }
 
 /**
- * Try with custom headers to bypass Cloudflare
+ * Enhanced Cloudflare bypass method
  */
-async function generateWithCustomHeaders(productImageUrls, prompt, brandName, variationNumber) {
+async function generateWithCloudflareBypass(productImageUrls, prompt, brandName, variationNumber) {
   const promptString = typeof prompt === 'string' ? prompt : String(prompt);
-  console.log(`📝 Custom headers method - Prompt: ${promptString.substring(0, 100)}...`);
-  
-  // Create a new Replicate instance with custom fetch
-  const customReplicate = new Replicate({
-    auth: process.env.REPLICATE_API_TOKEN,
-    fetch: (url, options) => {
-      return fetch(url, {
-        ...options,
-        headers: {
-          ...options.headers,
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-          'Accept': 'application/json',
-          'Accept-Language': 'en-US,en;q=0.9',
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
-        }
-      });
-    }
-  });
+  console.log(`📝 Cloudflare bypass method - Prompt: ${promptString.substring(0, 100)}...`);
   
   const input = {
     prompt: promptString,
@@ -207,83 +210,163 @@ async function generateWithCustomHeaders(productImageUrls, prompt, brandName, va
     safety_tolerance: 2
   };
   
-  const output = await customReplicate.run(FLUX_MODEL, { input });
-  return await saveImageFromOutput(output, brandName, variationNumber);
-}
-
-/**
- * Try with direct HTTP request to Replicate API
- */
-async function generateWithDirectHTTP(productImageUrls, prompt, brandName, variationNumber) {
-  const promptString = typeof prompt === 'string' ? prompt : String(prompt);
-  console.log(`📝 Direct HTTP method - Prompt: ${promptString.substring(0, 100)}...`);
-  
-  const input = {
-    prompt: promptString,
-    aspect_ratio: "1:1",
-    input_images: productImageUrls,
-    output_format: "png",
-    safety_tolerance: 2
-  };
-  
-  // Make direct HTTP request to Replicate API
+  // Make direct HTTP request with enhanced headers
   const response = await fetch(`https://api.replicate.com/v1/models/${FLUX_MODEL}/predictions`, {
     method: 'POST',
     headers: {
       'Authorization': `Token ${process.env.REPLICATE_API_TOKEN}`,
       'Content-Type': 'application/json',
-      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
-      'Accept': 'application/json',
+      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Safari/605.1.15',
+      'Accept': 'application/json, text/plain, */*',
+      'Accept-Language': 'en-US,en;q=0.9',
+      'Accept-Encoding': 'gzip, deflate, br',
       'Origin': 'https://replicate.com',
-      'Referer': 'https://replicate.com/'
+      'Referer': 'https://replicate.com/',
+      'Sec-Fetch-Dest': 'empty',
+      'Sec-Fetch-Mode': 'cors',
+      'Sec-Fetch-Site': 'same-site',
+      'X-Requested-With': 'XMLHttpRequest'
     },
     body: JSON.stringify({ input })
   });
   
   if (!response.ok) {
-    throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+    const errorText = await response.text();
+    const rayId = response.headers.get('cf-ray');
+    throw new Error(`HTTP ${response.status}: ${errorText}${rayId ? ` (Ray ID: ${rayId})` : ''}`);
   }
   
   const prediction = await response.json();
-  console.log(`🔍 Direct HTTP prediction created:`, prediction.id);
+  console.log(`🔍 Cloudflare bypass prediction created:`, prediction.id);
   
-  // Poll for completion
-  const completedPrediction = await pollPrediction(prediction.id);
+  // Poll for completion with enhanced error handling
+  const completedPrediction = await pollPredictionWithRetry(prediction.id);
   return await saveImageFromOutput(completedPrediction.output, brandName, variationNumber);
 }
 
 /**
- * Poll prediction status until completion
+ * Maximal bypass method with all techniques
  */
-async function pollPrediction(predictionId) {
-  const maxPolls = 60; // 5 minutes max
-  const pollInterval = 5000; // 5 seconds
+async function generateWithMaximalBypass(productImageUrls, prompt, brandName, variationNumber) {
+  const promptString = typeof prompt === 'string' ? prompt : String(prompt);
+  console.log(`📝 Maximal bypass method - Prompt: ${promptString.substring(0, 100)}...`);
   
-  for (let i = 0; i < maxPolls; i++) {
-    const response = await fetch(`https://api.replicate.com/v1/predictions/${predictionId}`, {
-      headers: {
-        'Authorization': `Token ${process.env.REPLICATE_API_TOKEN}`,
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
-      }
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Failed to poll prediction: ${response.status}`);
-    }
-    
-    const prediction = await response.json();
-    console.log(`🔄 Prediction ${predictionId} status: ${prediction.status}`);
-    
-    if (prediction.status === 'succeeded') {
-      return prediction;
-    } else if (prediction.status === 'failed') {
-      throw new Error(`Prediction failed: ${prediction.error}`);
-    }
-    
-    await sleep(pollInterval);
+  const input = {
+    prompt: promptString,
+    aspect_ratio: "1:1",
+    input_images: productImageUrls,
+    output_format: "png",
+    safety_tolerance: 2
+  };
+  
+  // Random delay to avoid pattern detection
+  await sleep(Math.random() * 3000 + 1000);
+  
+  // Make direct HTTP request with maximum stealth
+  const response = await fetch(`https://api.replicate.com/v1/models/${FLUX_MODEL}/predictions`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Token ${process.env.REPLICATE_API_TOKEN}`,
+      'Content-Type': 'application/json',
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'Accept': 'application/json, text/plain, */*',
+      'Accept-Language': 'en-US,en;q=0.9,es;q=0.8',
+      'Accept-Encoding': 'gzip, deflate, br',
+      'Cache-Control': 'no-cache',
+      'Pragma': 'no-cache',
+      'Origin': 'https://replicate.com',
+      'Referer': 'https://replicate.com/',
+      'Sec-Ch-Ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+      'Sec-Ch-Ua-Mobile': '?0',
+      'Sec-Ch-Ua-Platform': '"Windows"',
+      'Sec-Fetch-Dest': 'empty',
+      'Sec-Fetch-Mode': 'cors',
+      'Sec-Fetch-Site': 'same-site',
+      'X-Requested-With': 'XMLHttpRequest',
+      'DNT': '1'
+    },
+    body: JSON.stringify({ input })
+  });
+  
+  if (!response.ok) {
+    const errorText = await response.text();
+    const rayId = response.headers.get('cf-ray');
+    throw new Error(`HTTP ${response.status}: ${errorText}${rayId ? ` (Ray ID: ${rayId})` : ''}`);
   }
   
-  throw new Error('Prediction timed out');
+  const prediction = await response.json();
+  console.log(`🔍 Maximal bypass prediction created:`, prediction.id);
+  
+  // Poll for completion with enhanced error handling
+  const completedPrediction = await pollPredictionWithRetry(prediction.id);
+  return await saveImageFromOutput(completedPrediction.output, brandName, variationNumber);
+}
+
+/**
+ * Enhanced polling with retry logic and better error handling
+ */
+async function pollPredictionWithRetry(predictionId) {
+  const maxPolls = 60; // 5 minutes max
+  const pollInterval = 5000; // 5 seconds
+  let consecutiveErrors = 0;
+  
+  for (let i = 0; i < maxPolls; i++) {
+    try {
+      // Random delay to avoid pattern detection
+      if (i > 0) {
+        await sleep(pollInterval + Math.random() * 2000);
+      }
+      
+      const response = await fetch(`https://api.replicate.com/v1/predictions/${predictionId}`, {
+        headers: {
+          'Authorization': `Token ${process.env.REPLICATE_API_TOKEN}`,
+          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15',
+          'Accept': 'application/json',
+          'Cache-Control': 'no-cache'
+        }
+      });
+      
+      if (!response.ok) {
+        consecutiveErrors++;
+        const errorText = await response.text();
+        const rayId = response.headers.get('cf-ray');
+        
+        console.error(`❌ Poll attempt ${i + 1} failed: HTTP ${response.status}${rayId ? ` (Ray ID: ${rayId})` : ''}`);
+        
+        if (consecutiveErrors >= 3) {
+          throw new Error(`Failed to poll prediction after ${consecutiveErrors} consecutive errors: ${errorText}`);
+        }
+        
+        // Wait longer after errors
+        await sleep(pollInterval * 2);
+        continue;
+      }
+      
+      consecutiveErrors = 0; // Reset error counter on success
+      const prediction = await response.json();
+      console.log(`🔄 Prediction ${predictionId} status: ${prediction.status} (poll ${i + 1}/${maxPolls})`);
+      
+      if (prediction.status === 'succeeded') {
+        return prediction;
+      } else if (prediction.status === 'failed') {
+        throw new Error(`Prediction failed: ${prediction.error || 'Unknown error'}`);
+      } else if (prediction.status === 'canceled') {
+        throw new Error('Prediction was canceled');
+      }
+      
+    } catch (error) {
+      consecutiveErrors++;
+      console.error(`❌ Error polling prediction ${predictionId}:`, error.message);
+      
+      if (consecutiveErrors >= 3) {
+        throw error;
+      }
+      
+      await sleep(pollInterval * 2);
+    }
+  }
+  
+  throw new Error(`Prediction ${predictionId} timed out after ${maxPolls} polls`);
 }
 
 /**
@@ -387,5 +470,8 @@ function sleep(ms) {
 module.exports = {
   generateBrandVariations,
   generateSingleImageWithRetry,
+  generateWithCloudflareBypass,
+  generateWithMaximalBypass,
+  pollPredictionWithRetry,
   FLUX_MODEL
 };

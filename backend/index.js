@@ -124,6 +124,182 @@ app.get('/test-replicate', async (req, res) => {
   }
 });
 
+// Enhanced debug endpoint for Cloudflare issues
+app.get('/debug-replicate', async (req, res) => {
+  const debugInfo = {
+    timestamp: new Date().toISOString(),
+    environment: {
+      nodeEnv: process.env.NODE_ENV,
+      platform: process.platform,
+      nodeVersion: process.version
+    },
+    configuration: {
+      replicateToken: process.env.REPLICATE_API_TOKEN ? 'Present' : 'Missing',
+      tokenLength: process.env.REPLICATE_API_TOKEN?.length || 0,
+      tokenPrefix: process.env.REPLICATE_API_TOKEN ? process.env.REPLICATE_API_TOKEN.substring(0, 8) : 'N/A'
+    },
+    tests: []
+  };
+
+  // Test 1: Basic API connectivity
+  try {
+    console.log('🔍 Testing basic Replicate API connectivity...');
+    const response = await fetch('https://api.replicate.com/v1/models', {
+      headers: {
+        'Authorization': `Token ${process.env.REPLICATE_API_TOKEN}`,
+        'User-Agent': 'cluely-debug/1.0'
+      }
+    });
+    
+    debugInfo.tests.push({
+      name: 'Basic API connectivity',
+      status: response.ok ? 'PASS' : 'FAIL',
+      httpStatus: response.status,
+      headers: Object.fromEntries(response.headers.entries()),
+      cloudflareRayId: response.headers.get('cf-ray') || 'None'
+    });
+  } catch (error) {
+    debugInfo.tests.push({
+      name: 'Basic API connectivity',
+      status: 'ERROR',
+      error: error.message
+    });
+  }
+
+  // Test 2: Specific model access
+  try {
+    console.log('🔍 Testing specific model access...');
+    const response = await fetch('https://api.replicate.com/v1/models/flux-kontext-apps/multi-image-list', {
+      headers: {
+        'Authorization': `Token ${process.env.REPLICATE_API_TOKEN}`,
+        'User-Agent': 'cluely-debug/1.0'
+      }
+    });
+    
+    debugInfo.tests.push({
+      name: 'Model access',
+      status: response.ok ? 'PASS' : 'FAIL',
+      httpStatus: response.status,
+      cloudflareRayId: response.headers.get('cf-ray') || 'None',
+      responseText: !response.ok ? await response.text() : 'OK'
+    });
+  } catch (error) {
+    debugInfo.tests.push({
+      name: 'Model access',
+      status: 'ERROR',
+      error: error.message
+    });
+  }
+
+  // Test 3: Different User-Agent strings
+  const userAgents = [
+    'cluely-debug/1.0',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+    'replicate-js/0.25.1',
+    'curl/7.68.0'
+  ];
+
+  for (const userAgent of userAgents) {
+    try {
+      const response = await fetch('https://api.replicate.com/v1/models', {
+        headers: {
+          'Authorization': `Token ${process.env.REPLICATE_API_TOKEN}`,
+          'User-Agent': userAgent
+        }
+      });
+      
+      debugInfo.tests.push({
+        name: `User-Agent: ${userAgent}`,
+        status: response.ok ? 'PASS' : 'FAIL',
+        httpStatus: response.status,
+        cloudflareRayId: response.headers.get('cf-ray') || 'None'
+      });
+    } catch (error) {
+      debugInfo.tests.push({
+        name: `User-Agent: ${userAgent}`,
+        status: 'ERROR',
+        error: error.message
+      });
+    }
+  }
+
+  res.json(debugInfo);
+});
+
+// Simple token validation endpoint
+app.get('/validate-replicate-token', async (req, res) => {
+  try {
+    if (!process.env.REPLICATE_API_TOKEN) {
+      return res.status(400).json({
+        valid: false,
+        error: 'No Replicate API token configured'
+      });
+    }
+
+    // Just validate the token format first
+    const token = process.env.REPLICATE_API_TOKEN;
+    const tokenFormat = {
+      length: token.length,
+      startsWithR: token.startsWith('r8_'),
+      hasValidFormat: /^r8_[a-zA-Z0-9]{32,}$/.test(token)
+    };
+
+    console.log('🔍 Validating Replicate token format:', tokenFormat);
+
+    if (!tokenFormat.hasValidFormat) {
+      return res.json({
+        valid: false,
+        error: 'Token format appears invalid',
+        format: tokenFormat
+      });
+    }
+
+    // Simple API call to validate token
+    const response = await fetch('https://api.replicate.com/v1/account', {
+      headers: {
+        'Authorization': `Token ${token}`,
+        'User-Agent': 'cluely-token-validator/1.0'
+      }
+    });
+
+    const isValid = response.ok;
+    let accountInfo = null;
+    let errorInfo = null;
+
+    if (isValid) {
+      try {
+        accountInfo = await response.json();
+      } catch (e) {
+        // Ignore JSON parsing errors
+      }
+    } else {
+      errorInfo = {
+        status: response.status,
+        statusText: response.statusText,
+        cloudflareRayId: response.headers.get('cf-ray') || 'None'
+      };
+    }
+
+    console.log(`🔑 Token validation result: ${isValid ? 'VALID' : 'INVALID'}`);
+
+    res.json({
+      valid: isValid,
+      tokenFormat: tokenFormat,
+      account: accountInfo,
+      error: errorInfo,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('❌ Token validation error:', error);
+    res.status(500).json({
+      valid: false,
+      error: `Validation failed: ${error.message}`,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 // Root endpoint
 app.get('/', (req, res) => {
   res.json({
@@ -132,9 +308,12 @@ app.get('/', (req, res) => {
     endpoints: {
       'GET /health': 'Health check',
       'GET /test-replicate': 'Test Replicate connection',
+      'GET /debug-replicate': 'Comprehensive Replicate debugging',
+      'GET /validate-replicate-token': 'Validate Replicate API token',
       'POST /api/analyze-product': 'Analyze product with Gemini',
       'POST /api/generate-brand-prompt': 'Generate brand-specific prompt',
       'POST /api/generate-brand-images': 'Generate brand variations',
+      'POST /api/combine-images': 'Combine multiple images into single scene',
       'POST /api/upload': 'Upload multiple files',
       'POST /api/upload/single': 'Upload single file'
     }
