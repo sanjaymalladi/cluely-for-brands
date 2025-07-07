@@ -7,7 +7,7 @@ import { GenerationResults } from "@/components/GenerationResults";
 import { ClientOnly } from "@/components/ClientOnly";
 import { Brand } from "@/lib/brands";
 import { AppStep, ProductImageSet } from "@/types/app";
-import { api, ApiError } from "@/lib/api";
+import { api } from "@/lib/api";
 
 export default function Home() {
   // Application State

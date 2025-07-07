@@ -1,7 +1,34 @@
 // API service for communicating with the backend
+import { Brand } from './brands';
+
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
 
-interface ApiResponse<T = any> {
+// API Response Types
+interface AnalyzeProductResponse {
+  analysis: string;
+}
+
+interface GenerateBrandPromptResponse {
+  prompt: string;
+}
+
+interface GenerateBrandImagesResponse {
+  images: string[];
+}
+
+interface UploadFileResponse {
+  url: string;
+}
+
+interface HealthCheckResponse {
+  status: string;
+}
+
+interface CombineImagesResponse {
+  imageUrl: string;
+}
+
+interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   error?: string;
@@ -15,7 +42,7 @@ class ApiError extends Error {
   }
 }
 
-async function apiCall<T = any>(
+async function apiCall<T = unknown>(
   endpoint: string, 
   options: RequestInit = {}
 ): Promise<T> {
@@ -61,8 +88,8 @@ async function apiCall<T = any>(
 // API Methods
 export const api = {
   // Analyze product image
-  analyzeProduct: async (imageBase64: string, mimeType: string) => {
-    return apiCall('/api/analyze-product', {
+  analyzeProduct: async (imageBase64: string, mimeType: string): Promise<AnalyzeProductResponse> => {
+    return apiCall<AnalyzeProductResponse>('/api/analyze-product', {
       method: 'POST',
       body: JSON.stringify({
         imageBase64,
@@ -74,9 +101,9 @@ export const api = {
   // Generate brand-specific prompt
   generateBrandPrompt: async (
     productAnalysis: string,
-    brandData: any
-  ) => {
-    return apiCall('/api/generate-brand-prompt', {
+    brandData: Brand
+  ): Promise<GenerateBrandPromptResponse> => {
+    return apiCall<GenerateBrandPromptResponse>('/api/generate-brand-prompt', {
       method: 'POST',
       body: JSON.stringify({
         productAnalysis,
@@ -91,8 +118,8 @@ export const api = {
     brandPrompt: string,
     brandId: string,
     count: number = 4
-  ) => {
-    return apiCall('/api/generate-brand-images', {
+  ): Promise<GenerateBrandImagesResponse> => {
+    return apiCall<GenerateBrandImagesResponse>('/api/generate-brand-images', {
       method: 'POST',
       body: JSON.stringify({
         productImageUrls,
@@ -104,11 +131,11 @@ export const api = {
   },
 
   // Upload file
-  uploadFile: async (file: File) => {
+  uploadFile: async (file: File): Promise<UploadFileResponse> => {
     const formData = new FormData();
     formData.append('file', file);
 
-    return apiCall('/api/upload', {
+    return apiCall<UploadFileResponse>('/api/upload', {
       method: 'POST',
       headers: {}, // Don't set Content-Type for FormData
       body: formData
@@ -116,8 +143,8 @@ export const api = {
   },
 
   // Health check
-  healthCheck: async () => {
-    return apiCall('/health');
+  healthCheck: async (): Promise<HealthCheckResponse> => {
+    return apiCall<HealthCheckResponse>('/health');
   },
 
   // Combine multiple images into a single scene
@@ -125,8 +152,8 @@ export const api = {
     productImageUrls: string[],
     combinationPrompt: string,
     brandName?: string
-  ) => {
-    return apiCall('/api/combine-images', {
+  ): Promise<CombineImagesResponse> => {
+    return apiCall<CombineImagesResponse>('/api/combine-images', {
       method: 'POST',
       body: JSON.stringify({
         productImageUrls,

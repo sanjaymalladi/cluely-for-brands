@@ -248,7 +248,7 @@ export function BrandSelection({
               {selectedBrand && (
                 <div className="text-center space-y-2">
                   <p className="text-sm text-gray-400">
-                    🎯 This will generate <strong className="text-white">4 unique variations</strong> in {selectedBrand.name}'s signature style
+                    🎯 This will generate <strong className="text-white">4 unique variations</strong> in {selectedBrand.name}&apos;s signature style
                   </p>
                   <p className="text-xs text-gray-500">
                     ⏱️ Usually takes 30-60 seconds depending on image complexity

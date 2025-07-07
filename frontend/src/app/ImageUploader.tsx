@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from 'react';
-import { ProductImageSet } from '../types/app';
+import { ProductImageSet, ProductImage } from '../types/app';
 
 interface ImageUploaderProps {
   onImagesChange: (images: ProductImageSet) => void;
@@ -109,7 +109,7 @@ export default function ImageUploader({ onImagesChange }: ImageUploaderProps) {
     startTransition(async () => {
       try {
         const uploadedImages = await Promise.all(
-          fileArray.map(async (file, index) => {
+          fileArray.map(async (file) => {
             // Get image dimensions for UI
             const data = await getImageData(file);
             
@@ -146,7 +146,7 @@ export default function ImageUploader({ onImagesChange }: ImageUploaderProps) {
         );
 
         // If we have 2 images, create a stitched version
-        let finalImages = uploadedImages;
+        let finalImages: ProductImage[] = uploadedImages;
         if (uploadedImages.length === 2) {
           console.log('🔗 Stitching 2 images together...');
           try {
@@ -177,14 +177,15 @@ export default function ImageUploader({ onImagesChange }: ImageUploaderProps) {
                       const uploadResult = await uploadResponse.json();
                       
                       // Replace the array with a single stitched image
-                      finalImages = [{
+                      const stitchedProductImage: ProductImage = {
                         url: uploadResult.url,
                         previewUrl: stitchedImage.url,
                         width: stitchedImage.width,
                         height: stitchedImage.height,
-                        type: 'stitched' as const,
-                        file: blob as any
-                      }];
+                        type: 'stitched',
+                        file: blob as File
+                      };
+                      finalImages = [stitchedProductImage];
                       
                       console.log('✅ Stitched image uploaded successfully');
                       resolve();
@@ -259,10 +260,10 @@ export default function ImageUploader({ onImagesChange }: ImageUploaderProps) {
           📸 Upload Your Product Images
         </h2>
         <p className="text-gray-400 text-lg leading-relaxed">
-          Drop 1-2 product images here or click to browse. We'll analyze them and generate brand variations.
+          Drop 1-2 product images here or click to browse. We&apos;ll analyze them and generate brand variations.
           {images.images.length === 0 && (
             <span className="block mt-2 text-sm text-gray-500">
-              💡 Tip: Upload 2 images and we'll automatically stitch them together for better results!
+                              💡 Tip: Upload 2 images and we&apos;ll automatically stitch them together for better results!
             </span>
           )}
         </p>
@@ -371,7 +372,7 @@ export default function ImageUploader({ onImagesChange }: ImageUploaderProps) {
                 <span className="font-medium">Ready for analysis!</span>
               </div>
               <p className="text-sm text-green-300 mt-1">
-                Your images are uploaded and ready. Click "Analyze Product" to continue.
+                Your images are uploaded and ready. Click &quot;Analyze Product&quot; to continue.
               </p>
             </div>
           )}

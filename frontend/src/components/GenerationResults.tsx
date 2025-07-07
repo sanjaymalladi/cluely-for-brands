@@ -48,7 +48,7 @@ export function GenerationResults({
   };
 
   const handleShare = (imageUrl: string, platform: "twitter" | "linkedin") => {
-    const text = `Check out my product styled with ${selectedBrand.name}'s brand aesthetic! Made with Cluely for Brands ✨`;
+    const text = `Check out my product styled with ${selectedBrand.name}&apos;s brand aesthetic! Made with Cluely for Brands ✨`;
     const url = encodeURIComponent(window.location.href);
     
     let shareUrl = "";

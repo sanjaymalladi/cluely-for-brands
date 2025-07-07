@@ -9,7 +9,7 @@ export default function SimplePage() {
         <div className="max-w-2xl mx-auto">
           <h2 className="text-2xl font-semibold mb-4">Upload Your Product Images</h2>
           <p className="text-gray-600 mb-6">
-            Drop 1-2 product images here or click to browse. We'll analyze them and generate brand variations.
+            Drop 1-2 product images here or click to browse. We&apos;ll analyze them and generate brand variations.
           </p>
           
           <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
