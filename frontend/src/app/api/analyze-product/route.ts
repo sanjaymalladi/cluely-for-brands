@@ -3,17 +3,17 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 
 export async function POST(request: NextRequest) {
   try {
-    const { base64Image, imageType } = await request.json();
+    const { imageBase64, mimeType } = await request.json();
     
     console.log('🔑 Gemini API Key configured:', !!process.env.GEMINI_API_KEY);
-    console.log('🖼️ Image data length:', base64Image?.length || 0);
-    console.log('🖼️ MIME type:', imageType);
+    console.log('🖼️ Image data length:', imageBase64?.length || 0);
+    console.log('🖼️ MIME type:', mimeType);
     
     if (!process.env.GEMINI_API_KEY) {
       throw new Error('Gemini API key not configured');
     }
     
-    if (!base64Image || base64Image.length === 0) {
+    if (!imageBase64 || imageBase64.length === 0) {
       throw new Error('Image data is empty or invalid');
     }
     
@@ -31,8 +31,8 @@ export async function POST(request: NextRequest) {
     
     const imagePart = {
       inlineData: {
-        data: base64Image,
-        mimeType: imageType
+        data: imageBase64,
+        mimeType: mimeType
       }
     };
 

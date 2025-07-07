@@ -41,21 +41,39 @@ export default function Home() {
     setError(null);
 
     try {
-      // Convert primary image to base64 for Gemini analysis
+      // Extract base64 data from the uploaded image (now a data URL)
       const primaryImage = productImages.images[0]; // Use first image as primary
-      const response = await fetch(primaryImage.url);
-      const blob = await response.blob();
-      const base64 = await new Promise<string>((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          const result = reader.result as string;
-          resolve(result.split(',')[1]); // Remove data:image/jpeg;base64, prefix
-        };
-        reader.readAsDataURL(blob);
-      });
+      let analysisResponse;
+      
+      // Check if it's a data URL (starts with data:)
+      if (primaryImage.url.startsWith('data:')) {
+        // Extract base64 and mime type from data URL
+        const [header, base64] = primaryImage.url.split(',');
+        const mimeType = header.match(/data:([^;]+)/)?.[1] || 'image/jpeg';
+        
+        console.log('🔍 Using data URL for analysis');
+        console.log('🔍 MIME type:', mimeType);
+        console.log('🔍 Base64 length:', base64?.length || 0);
+        
+        // Analyze product with Gemini via backend
+        analysisResponse = await api.analyzeProduct(base64, mimeType);
+      } else {
+        // Fallback for regular URLs (shouldn't happen with new upload system)
+        console.log('🔍 Converting URL to base64 for analysis');
+        const response = await fetch(primaryImage.url);
+        const blob = await response.blob();
+        const base64 = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            const result = reader.result as string;
+            resolve(result.split(',')[1]); // Remove data:image/jpeg;base64, prefix
+          };
+          reader.readAsDataURL(blob);
+        });
 
-      // Analyze product with Gemini via backend
-      const analysisResponse = await api.analyzeProduct(base64, blob.type);
+        // Analyze product with Gemini via backend
+        analysisResponse = await api.analyzeProduct(base64, blob.type);
+      }
       console.log('📋 Analysis response:', analysisResponse);
       const analysis = analysisResponse.analysis;
       console.log('📋 Extracted analysis:', analysis);

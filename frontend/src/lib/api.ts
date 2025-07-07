@@ -138,7 +138,7 @@ export const api = {
     const formData = new FormData();
     formData.append('file', file);
 
-    return apiCall<UploadFileResponse>('/api/upload', {
+    return apiCall<UploadFileResponse>('/api/upload/single', {
       method: 'POST',
       headers: {}, // Don't set Content-Type for FormData
       body: formData
