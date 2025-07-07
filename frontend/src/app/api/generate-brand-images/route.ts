@@ -4,6 +4,7 @@ import { getBrandById } from '@/lib/brands';
 
 // Configuration
 const FLUX_MODEL = "flux-kontext-apps/multi-image-list";
+const FALLBACK_MODEL = "black-forest-labs/flux-1.1-pro"; // Fallback if multi-image fails
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 3000; // 3 seconds
 
@@ -71,9 +72,10 @@ async function generateSingleImageWithRetry(
         safety_tolerance: 2
       };
       
+      console.log(`🔄 Trying multi-image model with input:`, JSON.stringify(input, null, 2));
       const output = await replicate.run(FLUX_MODEL, { input }) as unknown;
       
-      console.log(`🔍 Raw output from Replicate:`, output);
+      console.log(`🔍 Raw output from Replicate:`, JSON.stringify(output, null, 2));
       console.log(`🔍 Output type:`, typeof output);
       
       // Handle different output formats from Replicate API
@@ -85,23 +87,49 @@ async function generateSingleImageWithRetry(
       } else if (Array.isArray(output) && output.length > 0) {
         // Array of URLs - take the first one
         const firstItem = output[0];
+        console.log(`🔍 First array item:`, firstItem, typeof firstItem);
         if (typeof firstItem === 'string' && firstItem.startsWith('http')) {
           imageUrl = firstItem;
         } else if (typeof firstItem === 'object' && firstItem && 'url' in firstItem) {
           imageUrl = String(firstItem.url);
         }
-      } else if (typeof output === 'object' && output && 'url' in output) {
-        // Object with url property
-        imageUrl = String((output as { url: string }).url);
-      } else if (typeof output === 'object' && output && 'images' in output) {
-        // Object with images array
-        const images = (output as { images: unknown[] }).images;
-        if (Array.isArray(images) && images.length > 0) {
-          const firstImage = images[0];
-          if (typeof firstImage === 'string') {
-            imageUrl = firstImage;
-          } else if (typeof firstImage === 'object' && firstImage && 'url' in firstImage) {
-            imageUrl = String((firstImage as { url: string }).url);
+      } else if (typeof output === 'object' && output && output !== null) {
+        console.log(`🔍 Object keys:`, Object.keys(output));
+        // Check for direct URL in object
+        if ('url' in output && typeof output.url === 'string') {
+          imageUrl = output.url;
+        }
+        // Check for images array
+        else if ('images' in output && Array.isArray(output.images)) {
+          const images = output.images;
+          console.log(`🔍 Images array:`, images);
+          if (images.length > 0) {
+            const firstImage = images[0];
+            if (typeof firstImage === 'string') {
+              imageUrl = firstImage;
+            } else if (typeof firstImage === 'object' && firstImage && 'url' in firstImage) {
+              imageUrl = String(firstImage.url);
+            }
+          }
+        }
+        // Check for other possible properties that might contain the URL
+        else {
+          const outputObj = output as Record<string, unknown>;
+          for (const [key, value] of Object.entries(outputObj)) {
+            console.log(`🔍 Checking key ${key}:`, value, typeof value);
+            if (typeof value === 'string' && value.startsWith('http')) {
+              console.log(`🔍 Found URL in key ${key}:`, value);
+              imageUrl = value;
+              break;
+            }
+            if (Array.isArray(value) && value.length > 0) {
+              const firstItem = value[0];
+              if (typeof firstItem === 'string' && firstItem.startsWith('http')) {
+                console.log(`🔍 Found URL in array key ${key}:`, firstItem);
+                imageUrl = firstItem;
+                break;
+              }
+            }
           }
         }
       }
@@ -110,8 +138,8 @@ async function generateSingleImageWithRetry(
         console.log(`✅ ${brandName} variation ${variationNumber} completed: ${imageUrl}`);
         return imageUrl;
       } else {
-        console.error(`❌ Could not extract valid URL from output:`, JSON.stringify(output, null, 2));
-        throw new Error(`Unexpected output format: ${typeof output}. Expected URL but got: ${JSON.stringify(output)}`);
+        console.error(`❌ Could not extract valid URL from output. Full output:`, JSON.stringify(output, null, 2));
+        throw new Error(`No valid URL found in response. Output keys: ${typeof output === 'object' && output ? Object.keys(output).join(', ') : 'N/A'}`);
       }
       
     } catch (error) {
@@ -152,16 +180,35 @@ export async function POST(request: NextRequest) {
     
     console.log('🔍 Received image URLs:', imageUrls);
     
-    // Convert data URLs to base64 format for Replicate
-    const processedImageUrls = imageUrls.map((url: string) => {
+    // Upload data URLs to Replicate's file storage
+    const processedImageUrls: string[] = [];
+    
+    for (let i = 0; i < imageUrls.length; i++) {
+      const url = imageUrls[i];
       if (url.startsWith('data:')) {
-        console.log('🔄 Converting data URL to base64 for Replicate...');
-        // Extract just the base64 part for Replicate
-        const base64Data = url.split(',')[1];
-        return `data:image/jpeg;base64,${base64Data}`;
+        console.log(`🔄 Uploading data URL ${i + 1} to Replicate file storage...`);
+        try {
+          const replicate = new Replicate({ auth: process.env.REPLICATE_API_TOKEN! });
+          
+          // Convert data URL to buffer
+          const base64Data = url.split(',')[1];
+          const buffer = Buffer.from(base64Data, 'base64');
+          
+          // Upload to Replicate
+          const uploadedFile = await replicate.files.create(buffer);
+          const uploadedUrl = uploadedFile.urls.get;
+          
+          console.log(`✅ Uploaded to Replicate: ${uploadedUrl}`);
+          processedImageUrls.push(uploadedUrl);
+        } catch (uploadError) {
+          console.error(`❌ Failed to upload image ${i + 1}:`, uploadError);
+          // Fallback: try to use the data URL anyway
+          processedImageUrls.push(url);
+        }
+      } else {
+        processedImageUrls.push(url);
       }
-      return url;
-    });
+    }
     
     console.log('🔍 Processed image URLs for Replicate:', processedImageUrls.length, 'images');
     
