@@ -37,8 +37,12 @@ export async function POST(request: NextRequest) {
 
     const output = await replicate.run("flux-kontext-apps/multi-image-list", { input }) as unknown;
 
-    console.log('🧪 Raw Replicate output:', JSON.stringify(output, null, 2));
+    console.log('🧪 Raw Replicate output:', output);
     console.log('🧪 Output type:', typeof output);
+    console.log('🧪 Output constructor:', output && typeof output === 'object' ? output.constructor.name : 'N/A');
+    console.log('🧪 Is Buffer:', Buffer.isBuffer(output));
+    console.log('🧪 Is Uint8Array:', output instanceof Uint8Array);
+    console.log('🧪 Is ReadableStream:', output instanceof ReadableStream);
     console.log('🧪 Output keys:', typeof output === 'object' && output ? Object.keys(output) : 'N/A');
 
     // Try to extract any URLs from the response
