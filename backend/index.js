@@ -345,7 +345,7 @@ app.post('/api/upload', upload.array('files'), async (req, res) => {
       await fs.writeFile(filepath, file.buffer);
       
       // Return HTTP URL that Replicate can access
-      const baseUrl = process.env.BACKEND_URL || `http://localhost:${PORT}`;
+      const baseUrl = process.env.BACKEND_URL || 'https://cluely-for-brands.onrender.com';
       const url = `${baseUrl}/uploads/${filename}`;
       
       console.log(`📁 Saved uploaded file: ${filename}`);
@@ -402,7 +402,7 @@ app.post('/api/upload/single', upload.single('file'), async (req, res) => {
     await fs.writeFile(filepath, req.file.buffer);
     
     // Return HTTP URL that Replicate can access
-    const baseUrl = process.env.BACKEND_URL || `http://localhost:${PORT}`;
+    const baseUrl = process.env.BACKEND_URL || 'https://cluely-for-brands.onrender.com';
     const url = `${baseUrl}/uploads/${filename}`;
     
     console.log(`📁 Saved uploaded file: ${filename}`);
