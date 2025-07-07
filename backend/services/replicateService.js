@@ -10,7 +10,7 @@ const replicate = new Replicate({
 });
 
 // Configuration
-const FLUX_MODEL = "flux-kontext-apps/multi-image-list";
+const FLUX_MODEL = "black-forest-labs/flux-kontext-pro";
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 2000; // 2 seconds
 
@@ -335,39 +335,50 @@ async function generateSingleImage(productImageUrls, prompt, brandName, variatio
       console.log(`🖼️ Input images count: ${inputImageData.length}`);
       console.log(`🔗 Primary image: ${inputImageData[0]?.substring(0, 100)}...`);
       
-      // Prepare input for Replicate flux-kontext-apps/multi-image-list model
+      // Prepare input for Replicate black-forest-labs/flux-kontext-pro model
       const input = {
         prompt: promptString,
-        aspect_ratio: "1:1",
-        input_images: inputImageData
+        image_url: inputImageData[0], // Primary image
+        aspect_ratio: "1:1"
       };
       
-      console.log(`🎯 Using ${inputImageData.length} input images for generation`);
+      // If we have multiple images, we need to handle them differently
+      if (inputImageData.length > 1) {
+        // For multiple images, we might need to stitch them or use a different approach
+        console.log(`⚠️ Multiple images detected (${inputImageData.length}), using first image as primary`);
+        // You might want to implement image stitching here or use a different model
+      }
+      
+      console.log(`🎯 Using single input image for generation`);
+      console.log(`🔍 Input structure:`, {
+        prompt: promptString.substring(0, 100) + '...',
+        image_url: typeof inputImageData[0] === 'string' ? inputImageData[0].substring(0, 50) + '...' : 'base64 data',
+        aspect_ratio: "1:1"
+      });
       
       const output = await replicate.run(FLUX_MODEL, { input });
       
       console.log(`🔍 Raw Replicate output type:`, typeof output);
+      console.log(`🔍 Output is array:`, Array.isArray(output));
       console.log(`🔍 Output length:`, output?.length);
-      console.log(`🔍 Output is Buffer:`, Buffer.isBuffer(output));
       
       if (output) {
-        // flux-kontext-apps/multi-image-list returns image data directly
-        const imageBuffer = Buffer.isBuffer(output) ? output : Buffer.from(output);
-        console.log(`📥 Received image data size: ${imageBuffer.length} bytes`);
+        let imageUrl;
         
-        const timestamp = Date.now();
-        const filename = `${brandName.toLowerCase()}_${variationNumber}_${timestamp}.png`;
-        const filepath = path.join(UPLOADS_DIR, filename);
-        
-        // Save the actual image data to file
-        await fsPromises.writeFile(filepath, imageBuffer);
-        
-        // Return the full URL path to access the file
-        const baseUrl = process.env.BACKEND_URL || 'https://cluely-for-brands.onrender.com';
-        const imageUrl = `${baseUrl}/uploads/${filename}`;
+        // Handle different output formats
+        if (Array.isArray(output) && output.length > 0) {
+          // If output is an array, take the first item
+          imageUrl = output[0];
+          console.log(`📥 Using first image from array: ${imageUrl}`);
+        } else if (typeof output === 'string') {
+          // If output is a direct URL string
+          imageUrl = output;
+          console.log(`📥 Using direct URL: ${imageUrl}`);
+        } else {
+          throw new Error('Unexpected output format from Replicate');
+        }
         
         console.log(`✅ ${brandName} variation ${variationNumber} completed on attempt ${attempt}`);
-        console.log(`💾 Saved to: ${filepath}`);
         console.log(`🔗 Image URL: ${imageUrl}`);
         
         return imageUrl;
@@ -499,42 +510,49 @@ async function generateCombinedImage(productImageUrls, combinationPrompt, brandN
     console.log(`🖼️ Input images count: ${inputImageData.length}`);
     console.log(`🔗 Input images for combination:`, inputImageData.map(img => img.substring(0, 100) + '...'));
     
-    // Prepare input for Replicate flux-kontext-apps/multi-image-list model
+    // Prepare input for Replicate black-forest-labs/flux-kontext-pro model
     const input = {
       prompt: combinationPrompt,
-      aspect_ratio: "1:1",
-      input_images: inputImageData
+      image_url: inputImageData[0], // Primary image
+      aspect_ratio: "1:1"
     };
+    
+    // If we have multiple images, we need to handle them differently
+    if (inputImageData.length > 1) {
+      // For multiple images, we might need to stitch them or use a different approach
+      console.log(`⚠️ Multiple images detected (${inputImageData.length}), using first image as primary`);
+      // You might want to implement image stitching here or use a different model
+    }
     
     console.log(`🎯 Combining ${inputImageData.length} images into single scene`);
     
     const output = await replicate.run(FLUX_MODEL, { input });
     
     console.log(`🔍 Raw Replicate output type:`, typeof output);
+    console.log(`🔍 Output is array:`, Array.isArray(output));
     console.log(`🔍 Output length:`, output?.length);
-    console.log(`🔍 Output is Buffer:`, Buffer.isBuffer(output));
     
     if (output) {
-      // flux-kontext-apps/multi-image-list returns image data directly
-      const imageBuffer = Buffer.isBuffer(output) ? output : Buffer.from(output);
-      console.log(`📥 Received combined image data size: ${imageBuffer.length} bytes`);
+      let imageUrl;
       
-      const timestamp = Date.now();
-      const filename = `${brandName.toLowerCase()}_combined_${timestamp}.png`;
-      const filepath = path.join(UPLOADS_DIR, filename);
-      
-      // Save the actual image data to file
-      await fsPromises.writeFile(filepath, imageBuffer);
-      
-      // Return the full URL path to access the file
-      const baseUrl = process.env.BACKEND_URL || 'https://cluely-for-brands.onrender.com';
-      const combinedImageUrl = `${baseUrl}/uploads/${filename}`;
+      // Handle different output formats
+      if (Array.isArray(output) && output.length > 0) {
+        // If output is an array, take the first item
+        imageUrl = output[0];
+        console.log(`📥 Using first image from array: ${imageUrl}`);
+      } else if (typeof output === 'string') {
+        // If output is a direct URL string
+        imageUrl = output;
+        console.log(`📥 Using direct URL: ${imageUrl}`);
+      } else {
+        throw new Error('Unexpected output format from Replicate');
+      }
       
       console.log(`✅ Combined image generation completed`);
-      console.log(`💾 Saved to: ${filepath}`);
-      console.log(`🔗 Image URL: ${combinedImageUrl}`);
+      console.log(`💾 Saved to: ${imageUrl}`);
+      console.log(`🔗 Image URL: ${imageUrl}`);
       
-      return combinedImageUrl;
+      return imageUrl;
     } else {
       throw new Error('No output received from Replicate');
     }
