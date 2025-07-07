@@ -73,12 +73,45 @@ async function generateSingleImageWithRetry(
       
       const output = await replicate.run(FLUX_MODEL, { input }) as unknown;
       
-      // Handle output - should be a string URL
+      console.log(`🔍 Raw output from Replicate:`, output);
+      console.log(`🔍 Output type:`, typeof output);
+      
+      // Handle different output formats from Replicate API
+      let imageUrl: string | null = null;
+      
       if (typeof output === 'string' && output.startsWith('http')) {
-        console.log(`✅ ${brandName} variation ${variationNumber} completed`);
-        return output;
+        // Direct URL string
+        imageUrl = output;
+      } else if (Array.isArray(output) && output.length > 0) {
+        // Array of URLs - take the first one
+        const firstItem = output[0];
+        if (typeof firstItem === 'string' && firstItem.startsWith('http')) {
+          imageUrl = firstItem;
+        } else if (typeof firstItem === 'object' && firstItem && 'url' in firstItem) {
+          imageUrl = String(firstItem.url);
+        }
+      } else if (typeof output === 'object' && output && 'url' in output) {
+        // Object with url property
+        imageUrl = String((output as { url: string }).url);
+      } else if (typeof output === 'object' && output && 'images' in output) {
+        // Object with images array
+        const images = (output as { images: unknown[] }).images;
+        if (Array.isArray(images) && images.length > 0) {
+          const firstImage = images[0];
+          if (typeof firstImage === 'string') {
+            imageUrl = firstImage;
+          } else if (typeof firstImage === 'object' && firstImage && 'url' in firstImage) {
+            imageUrl = String((firstImage as { url: string }).url);
+          }
+        }
+      }
+      
+      if (imageUrl && imageUrl.startsWith('http')) {
+        console.log(`✅ ${brandName} variation ${variationNumber} completed: ${imageUrl}`);
+        return imageUrl;
       } else {
-        throw new Error(`Unexpected output format: ${typeof output}`);
+        console.error(`❌ Could not extract valid URL from output:`, JSON.stringify(output, null, 2));
+        throw new Error(`Unexpected output format: ${typeof output}. Expected URL but got: ${JSON.stringify(output)}`);
       }
       
     } catch (error) {
@@ -119,7 +152,20 @@ export async function POST(request: NextRequest) {
     
     console.log('🔍 Received image URLs:', imageUrls);
     
-    if (imageUrls.length === 0 || !brandPrompt || !brandId) {
+    // Convert data URLs to base64 format for Replicate
+    const processedImageUrls = imageUrls.map((url: string) => {
+      if (url.startsWith('data:')) {
+        console.log('🔄 Converting data URL to base64 for Replicate...');
+        // Extract just the base64 part for Replicate
+        const base64Data = url.split(',')[1];
+        return `data:image/jpeg;base64,${base64Data}`;
+      }
+      return url;
+    });
+    
+    console.log('🔍 Processed image URLs for Replicate:', processedImageUrls.length, 'images');
+    
+    if (processedImageUrls.length === 0 || !brandPrompt || !brandId) {
       return NextResponse.json(
         { error: "Missing required parameters: productImageUrls, brandPrompt, brandId" },
         { status: 400 }
@@ -140,7 +186,7 @@ export async function POST(request: NextRequest) {
     }
     
     console.log(`🎨 Generating ${count} brand images for ${brand.name}...`);
-    console.log(`📸 Using ${imageUrls.length} input images`);
+    console.log(`📸 Using ${processedImageUrls.length} input images`);
     
     // Parse the 4 distinct prompts from Gemini response
     const prompts = parsePromptsFromGemini(brandPrompt);
@@ -169,7 +215,7 @@ export async function POST(request: NextRequest) {
     for (let i = 0; i < promptsToUse.length; i++) {
       try {
         console.log(`🔄 Generating variation ${i + 1}/${promptsToUse.length}...`);
-        const result = await generateSingleImageWithRetry(imageUrls, promptsToUse[i], brand.name, i + 1);
+        const result = await generateSingleImageWithRetry(processedImageUrls, promptsToUse[i], brand.name, i + 1);
         generatedImages.push(result);
         console.log(`✅ ${brand.name} variation ${i + 1} succeeded`);
         
