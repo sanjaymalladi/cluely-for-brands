@@ -4,7 +4,6 @@ import { getBrandById } from '@/lib/brands';
 
 // Configuration
 const FLUX_MODEL = "flux-kontext-apps/multi-image-list";
-const FALLBACK_MODEL = "black-forest-labs/flux-1.1-pro"; // Fallback if multi-image fails
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 3000; // 3 seconds
 

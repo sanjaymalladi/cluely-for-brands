@@ -42,15 +42,16 @@ export async function POST(request: NextRequest) {
     console.log('🧪 Output keys:', typeof output === 'object' && output ? Object.keys(output) : 'N/A');
 
     // Try to extract any URLs from the response
-    let foundUrls: string[] = [];
+    const foundUrls: string[] = [];
     
-    function extractUrls(obj: any, path = ''): void {
+    function extractUrls(obj: unknown, path = ''): void {
       if (typeof obj === 'string' && obj.startsWith('http')) {
         foundUrls.push(`${path}: ${obj}`);
       } else if (Array.isArray(obj)) {
         obj.forEach((item, index) => extractUrls(item, `${path}[${index}]`));
       } else if (typeof obj === 'object' && obj !== null) {
-        Object.keys(obj).forEach(key => extractUrls(obj[key], path ? `${path}.${key}` : key));
+        const objRecord = obj as Record<string, unknown>;
+        Object.keys(objRecord).forEach(key => extractUrls(objRecord[key], path ? `${path}.${key}` : key));
       }
     }
 
