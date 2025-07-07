@@ -1,7 +1,8 @@
-// API service for communicating with the backend
+// API service for communicating with Vercel Functions
 import { Brand } from './brands';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://cluely-for-brands.onrender.com';
+// No need for backend URL - using relative paths for Vercel Functions
+const API_BASE = '';
 
 // API Response Types
 interface AnalyzeProductResponse {
@@ -48,7 +49,7 @@ async function apiCall<T = unknown>(
   endpoint: string, 
   options: RequestInit = {}
 ): Promise<T> {
-  const url = `${BACKEND_URL}${endpoint}`;
+  const url = `${API_BASE}${endpoint}`;
   
   const defaultOptions: RequestInit = {
     headers: {

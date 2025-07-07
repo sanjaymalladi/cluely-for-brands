@@ -8,6 +8,7 @@ Your backend has been successfully converted to **Vercel Functions**! This elimi
 1. **`/api/analyze-product`** - Now uses Gemini AI directly
 2. **`/api/generate-brand-prompt`** - New route with enhanced prompt generation  
 3. **`/api/generate-brand-images`** - Now uses Replicate API directly
+4. **`/api/upload/single`** - New file upload endpoint for images
 
 ### ✅ **Dependencies Added**
 - `@google/generative-ai`: ^0.24.1
@@ -19,6 +20,8 @@ Your backend has been successfully converted to **Vercel Functions**! This elimi
 - **Enhanced retry mechanisms** with exponential backoff
 - **Structured prompt parsing** for better brand variations
 - **Type-safe implementations** (no 'any' types)
+- **API configuration updated** to use relative paths (no backend URL needed)
+- **File upload functionality** migrated to Vercel Functions
 
 ## 🚀 Deployment Instructions
 
