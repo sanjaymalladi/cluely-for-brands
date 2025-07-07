@@ -1,7 +1,7 @@
 // API service for communicating with the backend
 import { Brand } from './brands';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://cluely-for-brands.onrender.com';
 
 // API Response Types
 interface AnalyzeProductResponse {
