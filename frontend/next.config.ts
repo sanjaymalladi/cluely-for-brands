@@ -1,13 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Enable static export for deployment
-  output: 'export',
-  trailingSlash: true,
-  distDir: 'out',
+  // Removed static export to enable Vercel Functions
+  // output: 'export',  <- This disables API routes!
+  trailingSlash: false,  // Disable trailing slashes for API routes
   
   images: {
-    unoptimized: true, // Required for static export
     remotePatterns: [
       {
         protocol: "https",
@@ -20,6 +18,14 @@ const nextConfig: NextConfig = {
       {
         protocol: "https",
         hostname: "fal.media",
+      },
+      {
+        protocol: "https",
+        hostname: "replicate.delivery",
+      },
+      {
+        protocol: "https",
+        hostname: "pbxt.replicate.delivery",
       },
     ],
   },

@@ -3,6 +3,15 @@ import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
 import { existsSync } from 'fs';
 
+// Test endpoint to verify routing works
+export async function GET() {
+  return NextResponse.json({
+    message: 'Upload endpoint is working',
+    endpoint: '/api/upload/single',
+    methods: ['GET', 'POST']
+  });
+}
+
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();

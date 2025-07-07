@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react';
 import { ProductImageSet, ProductImage } from '../types/app';
 
-// Using Vercel Functions - no backend URL needed
+// Using Vercel Functions - no backend URL needed (empty string for relative paths)
 const API_BASE = '';
 
 interface ImageUploaderProps {
@@ -125,7 +125,10 @@ export default function ImageUploader({ onImagesChange }: ImageUploaderProps) {
             
             console.log('📤 Uploading file to backend:', file.name);
             
-            const uploadResponse = await fetch(`${API_BASE}/api/upload/single`, {
+            const uploadUrl = `${API_BASE}/api/upload/single`;
+            console.log('🔗 Upload URL:', uploadUrl);
+            
+            const uploadResponse = await fetch(uploadUrl, {
               method: 'POST',
               body: formData
             });
@@ -171,7 +174,10 @@ export default function ImageUploader({ onImagesChange }: ImageUploaderProps) {
                     const formData = new FormData();
                     formData.append('file', blob, 'stitched-image.png');
                     
-                    const uploadResponse = await fetch(`${API_BASE}/api/upload/single`, {
+                    const uploadUrl = `${API_BASE}/api/upload/single`;
+                    console.log('🔗 Stitched image upload URL:', uploadUrl);
+                    
+                    const uploadResponse = await fetch(uploadUrl, {
                       method: 'POST',
                       body: formData
                     });

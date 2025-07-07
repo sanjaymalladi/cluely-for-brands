@@ -22,6 +22,8 @@ Your backend has been successfully converted to **Vercel Functions**! This elimi
 - **Type-safe implementations** (no 'any' types)
 - **API configuration updated** to use relative paths (no backend URL needed)
 - **File upload functionality** migrated to Vercel Functions
+- **Next.js config fixed** - removed static export to enable API routes
+- **Trailing slash handling** configured for proper routing
 
 ## 🚀 Deployment Instructions
 
@@ -142,6 +144,27 @@ POST /api/generate-brand-images
 2. **Test thoroughly** with real product images
 3. **Monitor performance** in Vercel dashboard
 4. **Celebrate!** 🎊 Your app is now fully serverless and IP-block resistant
+
+---
+
+## ⚠️ Critical Configuration Fix
+
+**IMPORTANT:** The original `next.config.ts` had `output: 'export'` which **disables Vercel Functions**. This was causing:
+- ❌ 405 Method Not Allowed errors
+- ❌ API routes not working
+- ❌ Static export incompatible with server functions
+
+**Fixed by:**
+- ✅ Removed `output: 'export'` 
+- ✅ Set `trailingSlash: false`
+- ✅ Enabled proper Vercel Functions support
+
+## 🔧 Troubleshooting
+
+If you get **405 errors**:
+1. Check `next.config.ts` - ensure no `output: 'export'`
+2. Verify environment variables are set in Vercel
+3. Test the GET endpoint: `https://your-app.vercel.app/api/upload/single`
 
 ---
 
