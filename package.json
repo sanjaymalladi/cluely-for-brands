@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "cd frontend && npm install && npm run build",
+    "build": "echo 'Backend build complete - no build step needed'",
     "start": "node backend/index.js",
     "lint": "cd frontend && npm run lint",
     "start:backend": "node backend/index.js"

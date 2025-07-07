@@ -30,7 +30,8 @@ app.use(cors({
     'http://127.0.0.1:3006',
     'http://192.168.1.8:3000',
     'http://192.168.1.8:3002',
-    'http://192.168.1.8:3006' // Allow network access
+    'http://192.168.1.8:3006', // Allow network access
+    'https://cluely-for-brands.vercel.app' // Allow Vercel frontend
   ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -53,12 +54,8 @@ app.use('/uploads', (req, res, next) => {
   next();
 }, express.static(path.join(__dirname, 'uploads')));
 
-// Serve frontend build files
-const frontendBuildPath = path.join(__dirname, '../frontend/.next');
-if (require('fs').existsSync(frontendBuildPath)) {
-  app.use('/_next', express.static(path.join(frontendBuildPath, 'static')));
-  app.use('/static', express.static(path.join(__dirname, '../frontend/public')));
-}
+// Note: Frontend is hosted separately on Vercel
+// Only serving API endpoints and uploads from this backend
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -466,42 +463,21 @@ app.get('/api/replicate/models/*', async (req, res) => {
   }
 });
 
-// Serve static files from frontend build
-const frontendDistPath = path.join(__dirname, '../frontend/out');
-const frontendPublicPath = path.join(__dirname, '../frontend/public');
-
-// Serve static assets
-app.use('/brands', express.static(path.join(frontendPublicPath, 'brands')));
-app.use('/_next', express.static(path.join(frontendDistPath, '_next')));
-app.use('/static', express.static(frontendPublicPath));
-
-// Catch-all handler: send back React's index.html file for client-side routing
-app.get('*', (req, res) => {
-  // Don't serve frontend for API routes
-  if (req.path.startsWith('/api/') || req.path.startsWith('/uploads/')) {
-    return res.status(404).json({
-      error: 'API route not found',
-      path: req.path
-    });
-  }
-  
-  const indexPath = path.join(frontendDistPath, 'index.html');
-  if (require('fs').existsSync(indexPath)) {
-    res.sendFile(indexPath);
-  } else {
-    res.status(404).json({
-      error: 'Frontend build not found. Please run build first.',
-      path: req.path
-    });
-  }
-});
-
 // Error handling middleware
 app.use((error, req, res, next) => {
   console.error('Unhandled error:', error);
   res.status(500).json({
     error: 'Internal server error',
     details: process.env.NODE_ENV === 'development' ? error.message : undefined
+  });
+});
+
+// 404 handler for API routes
+app.use((req, res) => {
+  res.status(404).json({
+    error: 'Route not found',
+    path: req.path,
+    message: 'This is the Cluely for Brands API. Frontend is hosted at https://cluely-for-brands.vercel.app/'
   });
 });
 
