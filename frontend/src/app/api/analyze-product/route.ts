@@ -5,7 +5,7 @@ export async function POST(request: NextRequest) {
     const { base64Image, imageType } = await request.json();
     
     // Forward the request to the backend server
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://cluely-for-brands.onrender.com';
     const response = await fetch(`${backendUrl}/api/analyze-product`, {
       method: 'POST',
       headers: {

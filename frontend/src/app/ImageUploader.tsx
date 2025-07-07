@@ -3,6 +3,8 @@
 import { useState, useTransition } from 'react';
 import { ProductImageSet, ProductImage } from '../types/app';
 
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://cluely-for-brands.onrender.com';
+
 interface ImageUploaderProps {
   onImagesChange: (images: ProductImageSet) => void;
 }
@@ -122,7 +124,7 @@ export default function ImageUploader({ onImagesChange }: ImageUploaderProps) {
             
             console.log('📤 Uploading file to backend:', file.name);
             
-            const uploadResponse = await fetch('http://localhost:3001/api/upload/single', {
+            const uploadResponse = await fetch(`${BACKEND_URL}/api/upload/single`, {
               method: 'POST',
               body: formData
             });
@@ -168,7 +170,7 @@ export default function ImageUploader({ onImagesChange }: ImageUploaderProps) {
                     const formData = new FormData();
                     formData.append('file', blob, 'stitched-image.png');
                     
-                    const uploadResponse = await fetch('http://localhost:3001/api/upload/single', {
+                    const uploadResponse = await fetch(`${BACKEND_URL}/api/upload/single`, {
                       method: 'POST',
                       body: formData
                     });
