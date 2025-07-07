@@ -114,7 +114,7 @@ export function GenerationResults({
               Your {selectedBrand.name} vibe is ready!
             </h2>
             <p className="text-lg text-gray-400 max-w-2xl mx-auto">
-              Here are unique variations of your product in {selectedBrand.name}'s signature style
+              Here are unique variations of your product in {selectedBrand.name}&apos;s signature style
             </p>
           </div>
           

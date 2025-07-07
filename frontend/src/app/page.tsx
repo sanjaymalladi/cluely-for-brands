@@ -107,7 +107,7 @@ export default function Home() {
 
     try {
       // Generate images via API
-      const brandPrompt = await api.generateBrandPrompt(
+      const brandPromptResponse = await api.generateBrandPrompt(
         productImages.analysis,
         selectedBrand
       );
@@ -119,7 +119,7 @@ export default function Home() {
       // Generate brand images via backend using all uploaded images
       const imagesResponse = await api.generateBrandImages(
         allImageUrls,
-        brandPrompt,
+        brandPromptResponse.prompt,
         selectedBrand.id,
         4
       );

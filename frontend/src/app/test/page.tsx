@@ -41,8 +41,8 @@ export default function TestPage() {
       );
 
       console.log("✅ Combination response:", response);
-      setCombinedImage(response.image);
-      setCombineStatus(`✅ Successfully combined ${response.inputImageCount} images!`);
+      setCombinedImage(response.imageUrl);
+      setCombineStatus(`✅ Successfully combined images!`);
 
     } catch (error) {
       console.error("❌ Combination failed:", error);
