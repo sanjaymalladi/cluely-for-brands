@@ -2,6 +2,7 @@ const Replicate = require('replicate');
 const { writeFile } = require('fs').promises;
 const fs = require('fs');
 const path = require('path');
+const fetch = require('node-fetch');
 
 // Initialize Replicate client
 const replicate = new Replicate({
@@ -17,7 +18,6 @@ const RETRY_DELAY = 2000; // 2 seconds
 const UPLOADS_DIR = path.join(__dirname, '../uploads');
 async function ensureUploadsDir() {
   try {
-    await writeFile;
     if (!fs.existsSync(UPLOADS_DIR)) {
       fs.mkdirSync(UPLOADS_DIR, { recursive: true });
     }
@@ -27,8 +27,8 @@ async function ensureUploadsDir() {
 }
 
 /**
- * Generate brand variations using multiple distinct prompts from Gemini
- * Simplified version based on working local implementation
+ * Generate brand variations using 4 distinct prompts from Gemini
+ * Following the exact documentation pattern
  */
 async function generateBrandVariations(productImageUrls, geminiPromptsText, brandName, count = 4) {
   try {
@@ -178,7 +178,7 @@ function parsePromptsFromGemini(geminiText) {
 }
 
 /**
- * Generate a single image - simplified version based on working local code
+ * Generate a single image - following documentation exactly
  */
 async function generateSingleImage(productImageUrls, prompt, brandName, variationNumber) {
   let lastError;
@@ -204,27 +204,36 @@ async function generateSingleImage(productImageUrls, prompt, brandName, variatio
       console.log(`🖼️ Using model: ${FLUX_MODEL}`);
       console.log(`🔗 Input image URLs:`, productImageUrls);
       
-      // Simple input format based on working example
+      // Input format exactly matching the documentation
       const input = {
         prompt: promptString,
         aspect_ratio: "1:1",
-        input_images: productImageUrls
+        input_images: productImageUrls,
+        output_format: "png",
+        safety_tolerance: 2
       };
       
       console.log(`🎯 Using ${productImageUrls.length} input images for generation`);
       console.log(`🔍 Input object:`, JSON.stringify(input, null, 2));
       
-      // Direct call to replicate.run - simplified approach
+      // Direct call to replicate.run - following documentation pattern
       const output = await replicate.run(FLUX_MODEL, { input });
       
-      console.log(`🔍 Raw Replicate output type:`, typeof output);
-      console.log(`🔍 Output length:`, output?.length);
-      console.log(`🔍 Output is Buffer:`, Buffer.isBuffer(output));
+      console.log(`🔍 Raw Replicate output:`, output);
+      console.log(`🔍 Output type:`, typeof output);
       
-      if (output) {
-        // Handle output as binary data
-        const imageBuffer = Buffer.isBuffer(output) ? output : Buffer.from(output);
-        console.log(`📥 Received image data size: ${imageBuffer.length} bytes`);
+      // According to documentation, output should be a URL
+      if (output && typeof output === 'string' && output.startsWith('http')) {
+        console.log(`✅ Received image URL: ${output}`);
+        
+        // Download the image from the URL
+        const response = await fetch(output);
+        if (!response.ok) {
+          throw new Error(`Failed to download image: ${response.status} ${response.statusText}`);
+        }
+        
+        const imageBuffer = await response.buffer();
+        console.log(`📥 Downloaded image data size: ${imageBuffer.length} bytes`);
         
         const timestamp = Date.now();
         const filename = `${brandName.toLowerCase()}_${variationNumber}_${timestamp}.png`;
@@ -243,11 +252,18 @@ async function generateSingleImage(productImageUrls, prompt, brandName, variatio
         
         return imageUrl;
       } else {
-        throw new Error('No output received from Replicate');
+        throw new Error(`Unexpected output format: ${typeof output} - ${JSON.stringify(output)}`);
       }
       
     } catch (error) {
       console.error(`❌ Attempt ${attempt} failed for ${brandName} variation ${variationNumber}:`, error.message);
+      
+      // Log specific 403 Forbidden error handling
+      if (error.message && error.message.includes('403 Forbidden')) {
+        console.error(`🚫 403 Forbidden Error - Render IP may be blocked by Cloudflare`);
+        console.error(`🔍 This is likely a rate limiting or IP blocking issue`);
+      }
+      
       console.error(`❌ Full error:`, error);
       lastError = error;
       
@@ -263,7 +279,7 @@ async function generateSingleImage(productImageUrls, prompt, brandName, variatio
 
 /**
  * Generate a single combined image from multiple input images
- * Simplified version
+ * Following documentation exactly
  */
 async function generateCombinedImage(productImageUrls, combinationPrompt, brandName = 'combined') {
   try {
@@ -276,27 +292,36 @@ async function generateCombinedImage(productImageUrls, combinationPrompt, brandN
     
     console.log(`🔍 Input image URLs:`, productImageUrls);
     
-    // Simple input format based on working example
+    // Input format exactly matching the documentation
     const input = {
       prompt: combinationPrompt,
       aspect_ratio: "1:1",
-      input_images: productImageUrls
+      input_images: productImageUrls,
+      output_format: "png",
+      safety_tolerance: 2
     };
     
     console.log(`🎯 Combining ${productImageUrls.length} images into single scene`);
     console.log(`🔍 Input object:`, JSON.stringify(input, null, 2));
     
-    // Direct call to replicate.run - simplified approach
+    // Direct call to replicate.run - following documentation pattern
     const output = await replicate.run(FLUX_MODEL, { input });
     
-    console.log(`🔍 Raw Replicate output type:`, typeof output);
-    console.log(`🔍 Output length:`, output?.length);
-    console.log(`🔍 Output is Buffer:`, Buffer.isBuffer(output));
+    console.log(`🔍 Raw Replicate output:`, output);
+    console.log(`🔍 Output type:`, typeof output);
     
-    if (output) {
-      // Handle output as binary data
-      const imageBuffer = Buffer.isBuffer(output) ? output : Buffer.from(output);
-      console.log(`📥 Received combined image data size: ${imageBuffer.length} bytes`);
+    // According to documentation, output should be a URL
+    if (output && typeof output === 'string' && output.startsWith('http')) {
+      console.log(`✅ Received image URL: ${output}`);
+      
+      // Download the image from the URL
+      const response = await fetch(output);
+      if (!response.ok) {
+        throw new Error(`Failed to download image: ${response.status} ${response.statusText}`);
+      }
+      
+      const imageBuffer = await response.buffer();
+      console.log(`📥 Downloaded combined image data size: ${imageBuffer.length} bytes`);
       
       const timestamp = Date.now();
       const filename = `${brandName.toLowerCase()}_combined_${timestamp}.png`;
@@ -315,11 +340,18 @@ async function generateCombinedImage(productImageUrls, combinationPrompt, brandN
       
       return combinedImageUrl;
     } else {
-      throw new Error('No output received from Replicate');
+      throw new Error(`Unexpected output format: ${typeof output} - ${JSON.stringify(output)}`);
     }
     
   } catch (error) {
     console.error('❌ Error generating combined image:', error);
+    
+    // Log specific 403 Forbidden error handling
+    if (error.message && error.message.includes('403 Forbidden')) {
+      console.error(`🚫 403 Forbidden Error - Render IP may be blocked by Cloudflare`);
+      console.error(`🔍 This is likely a rate limiting or IP blocking issue`);
+    }
+    
     console.error('❌ Full error:', error);
     throw new Error(`Failed to generate combined image: ${error.message}`);
   }
