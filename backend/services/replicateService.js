@@ -10,7 +10,7 @@ const replicate = new Replicate({
 });
 
 // Configuration
-const FLUX_MODEL = "flux-kontext-apps/multi-image-list";
+const FLUX_MODEL = "black-forest-labs/flux-schnell";
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 2000; // 2 seconds
 
@@ -231,7 +231,7 @@ function parsePromptsFromGemini(geminiText) {
 }
 
 /**
- * Generate a single image with retries (Updated for flux-kontext multi-image model)
+ * Generate a single image with retries (Updated for black-forest-labs/flux-schnell model)
  */
 async function generateSingleImage(productImageUrls, prompt, brandName, variationNumber) {
   let lastError;
@@ -335,11 +335,13 @@ async function generateSingleImage(productImageUrls, prompt, brandName, variatio
       console.log(`🖼️ Input images count: ${inputImageData.length}`);
       console.log(`🔗 Primary image: ${inputImageData[0]?.substring(0, 100)}...`);
       
-      // Prepare input for Replicate flux-kontext-apps/multi-image-list model
+      // Prepare input for Replicate black-forest-labs/flux-schnell model
       const input = {
         prompt: promptString,
         aspect_ratio: "1:1",
-        input_images: inputImageData
+        num_outputs: 1,
+        output_format: "png",
+        output_quality: 90
       };
       
       console.log(`🎯 Using ${inputImageData.length} input images for generation`);
@@ -350,12 +352,15 @@ async function generateSingleImage(productImageUrls, prompt, brandName, variatio
       console.log(`🔍 Output length:`, output?.length);
       console.log(`🔍 Output value:`, output);
       
-      if (output) {
+      // FLUX-schnell returns an array of URLs
+      const imageUrl = Array.isArray(output) ? output[0] : output;
+      
+      if (imageUrl) {
         // Output is a URL string, need to download the actual image
-        console.log(`🔗 Replicate returned URL: ${output}`);
+        console.log(`🔗 Replicate returned URL: ${imageUrl}`);
         
         // Download the image from the Replicate URL
-        const response = await fetch(output);
+        const response = await fetch(imageUrl);
         if (!response.ok) {
           throw new Error(`Failed to download image from Replicate: ${response.status}`);
         }
@@ -371,7 +376,7 @@ async function generateSingleImage(productImageUrls, prompt, brandName, variatio
         await fsPromises.writeFile(filepath, imageBuffer);
         
         // Return the full URL path to access the file
-        const baseUrl = process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 3001}`;
+        const baseUrl = process.env.BACKEND_URL || 'https://cluely-for-brands.onrender.com';
         const imageUrl = `${baseUrl}/uploads/${filename}`;
         
         console.log(`✅ ${brandName} variation ${variationNumber} completed on attempt ${attempt}`);
@@ -507,11 +512,13 @@ async function generateCombinedImage(productImageUrls, combinationPrompt, brandN
     console.log(`🖼️ Input images count: ${inputImageData.length}`);
     console.log(`🔗 Input images for combination:`, inputImageData.map(img => img.substring(0, 100) + '...'));
     
-    // Prepare input for Replicate flux-kontext-apps/multi-image-list model
+    // Prepare input for Replicate black-forest-labs/flux-schnell model
     const input = {
       prompt: combinationPrompt,
       aspect_ratio: "1:1",
-      input_images: inputImageData
+      num_outputs: 1,
+      output_format: "png",
+      output_quality: 90
     };
     
     console.log(`🎯 Combining ${inputImageData.length} images into single scene`);
@@ -522,12 +529,15 @@ async function generateCombinedImage(productImageUrls, combinationPrompt, brandN
     console.log(`🔍 Output length:`, output?.length);
     console.log(`🔍 Output value:`, output);
     
-    if (output) {
+    // FLUX-schnell returns an array of URLs
+    const imageUrl = Array.isArray(output) ? output[0] : output;
+    
+    if (imageUrl) {
       // Output is a URL string, need to download the actual image
-      console.log(`🔗 Replicate returned URL: ${output}`);
+      console.log(`🔗 Replicate returned URL: ${imageUrl}`);
       
       // Download the image from the Replicate URL
-      const response = await fetch(output);
+      const response = await fetch(imageUrl);
       if (!response.ok) {
         throw new Error(`Failed to download image from Replicate: ${response.status}`);
       }
@@ -543,14 +553,14 @@ async function generateCombinedImage(productImageUrls, combinationPrompt, brandN
       await fsPromises.writeFile(filepath, imageBuffer);
       
       // Return the full URL path to access the file
-      const baseUrl = process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 3001}`;
-      const imageUrl = `${baseUrl}/uploads/${filename}`;
+      const baseUrl = process.env.BACKEND_URL || 'https://cluely-for-brands.onrender.com';
+      const combinedImageUrl = `${baseUrl}/uploads/${filename}`;
       
       console.log(`✅ Combined image generation completed`);
       console.log(`💾 Saved to: ${filepath}`);
-      console.log(`🔗 Image URL: ${imageUrl}`);
+      console.log(`🔗 Image URL: ${combinedImageUrl}`);
       
-      return imageUrl;
+      return combinedImageUrl;
     } else {
       throw new Error('No output received from Replicate');
     }
