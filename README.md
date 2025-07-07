@@ -38,7 +38,7 @@ Transform your product images into stunning brand-specific marketing content usi
 - Gemini API key
 - Replicate API token
 
-### Installation
+### Installation & Setup
 
 1. **Clone the repository**
    ```bash
@@ -46,27 +46,46 @@ Transform your product images into stunning brand-specific marketing content usi
    cd cluely-for-brands
    ```
 
-2. **Setup Backend**
-   ```bash
-   cd backend
-   npm install
-   cp env.example .env
-   # Edit .env with your API keys
-   npm start
-   ```
+2. **Install dependencies**
+   Install dependencies for both the frontend and backend from the root directory.
+```bash
+npm install
+```
 
-3. **Setup Frontend**
+3. **Configure Environment Variables**
+   There are two separate `.env` files you need to set up.
+   
+   - **For the Backend:**
+     - Navigate to the `backend` folder: `cd backend`
+     - Copy the example file: `cp env.example .env`
+     - Edit the `.env` file to add your `GEMINI_API_KEY` and `REPLICATE_API_TOKEN`.
+     - Return to the root directory: `cd ..`
+
+   - **For the Frontend:**
+     - Navigate to the `frontend` folder: `cd frontend`
+     - Copy the example file: `cp env.example .env.local`
+     - Edit the `.env.local` file to set `NEXT_PUBLIC_BACKEND_URL=http://localhost:3001`.
+     - Return to the root directory: `cd ..`
+
+### Running the Application
+
+All commands must be run from the **root** `cluely-for-brands` directory.
+
+4. **Start the Backend Server**
    ```bash
-   cd frontend
-   npm install
-   cp env.example .env.local
-   # Edit .env.local with backend URL
+   npm run start:backend
+   ```
+   The backend will be available at `http://localhost:3001`.
+
+5. **Start the Frontend Dev Server**
+   Open a **new terminal window** and run:
+```bash
    npm run dev
    ```
 
-4. **Visit the app**
-   - Frontend: http://localhost:3000
-   - Backend: http://localhost:3001
+6. **Visit the app**
+   - Frontend: `http://localhost:3000`
+   - Backend Health Check: `http://localhost:3001/health`
 
 ## 🌐 Production Deployment
 
