@@ -175,29 +175,25 @@ async function checkCloudflareBlock() {
  * Generate mock images as fallback when Replicate is blocked
  */
 async function generateMockImages(prompts, brandName, imageUrls) {
-  console.log('🎨 Generating mock images as fallback...');
+  console.log('🎨 Generating local mock images as fallback...');
   
   const mockImages = [];
   for (let i = 0; i < prompts.length; i++) {
     try {
-      // Use a service that creates branded placeholder images
-      const mockUrl = `https://via.placeholder.com/512x512/FF69B4/FFFFFF?text=${encodeURIComponent(`${brandName} Style ${i + 1}`)}`;
-      
-      // Download and save the mock image
-      const response = await fetch(mockUrl);
-      const imageBuffer = await response.buffer();
+      // Create a simple branded placeholder image locally
+      const mockImageBuffer = await createLocalPlaceholder(brandName, i + 1);
       
       const timestamp = Date.now();
       const filename = `${brandName.toLowerCase()}_mock_${i + 1}_${timestamp}.png`;
       const filepath = path.join(UPLOADS_DIR, filename);
       
-      await writeFile(filepath, imageBuffer);
+      await writeFile(filepath, mockImageBuffer);
       
       const baseUrl = process.env.BACKEND_URL || 'https://cluely-for-brands.onrender.com';
       const imageUrl = `${baseUrl}/uploads/${filename}`;
       
       mockImages.push(imageUrl);
-      console.log(`✅ Generated mock image ${i + 1}: ${imageUrl}`);
+      console.log(`✅ Generated local mock image ${i + 1}: ${imageUrl}`);
       
     } catch (error) {
       console.error(`❌ Failed to generate mock image ${i + 1}:`, error);
@@ -205,6 +201,48 @@ async function generateMockImages(prompts, brandName, imageUrls) {
   }
   
   return mockImages;
+}
+
+/**
+ * Create a local placeholder image using SVG
+ */
+async function createLocalPlaceholder(brandName, variation) {
+  console.log(`🎨 Creating SVG placeholder for ${brandName} variation ${variation}`);
+  
+  // Brand color scheme
+  const brandColors = {
+    'Glossier': { bg: '#F4C2C2', text: '#FFFFFF', accent: '#E91E63' },
+    'Nike': { bg: '#000000', text: '#FFFFFF', accent: '#FF6B00' },
+    'Apple': { bg: '#F5F5F7', text: '#1D1D1F', accent: '#007AFF' },
+    'Tesla': { bg: '#000000', text: '#FFFFFF', accent: '#E82127' },
+    'Supreme': { bg: '#FF0000', text: '#FFFFFF', accent: '#000000' },
+    'Off-White': { bg: '#000000', text: '#FFFFFF', accent: '#FFFF00' },
+    'Patagonia': { bg: '#4A5D23', text: '#FFFFFF', accent: '#F4A261' },
+    'Aesop': { bg: '#C8B99C', text: '#2D2D2D', accent: '#8B7355' }
+  };
+  
+  const colors = brandColors[brandName] || { bg: '#6B7280', text: '#FFFFFF', accent: '#3B82F6' };
+  
+  const svgContent = `<svg width="512" height="512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:${colors.bg};stop-opacity:1" />
+      <stop offset="100%" style="stop-color:${colors.accent};stop-opacity:0.3" />
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" fill="url(#bgGradient)"/>
+  <rect x="20" y="20" width="472" height="472" fill="none" stroke="${colors.accent}" stroke-width="4" rx="8"/>
+  <text x="256" y="180" text-anchor="middle" fill="${colors.text}" font-family="Arial, sans-serif" font-size="42" font-weight="bold">${brandName}</text>
+  <text x="256" y="220" text-anchor="middle" fill="${colors.text}" font-family="Arial, sans-serif" font-size="16" opacity="0.8">AI Generated Style</text>
+  <text x="256" y="280" text-anchor="middle" fill="${colors.accent}" font-family="Arial, sans-serif" font-size="72" font-weight="bold">${variation}</text>
+  <text x="256" y="320" text-anchor="middle" fill="${colors.text}" font-family="Arial, sans-serif" font-size="14" opacity="0.6">Professional Brand Visualization</text>
+  <circle cx="150" cy="380" r="8" fill="${colors.accent}"/>
+  <circle cx="256" cy="380" r="8" fill="${colors.accent}"/>
+  <circle cx="362" cy="380" r="8" fill="${colors.accent}"/>
+  <rect x="100" y="420" width="312" height="2" fill="${colors.accent}" opacity="0.5"/>
+</svg>`;
+  
+  return Buffer.from(svgContent, 'utf8');
 }
 
 /**
@@ -481,4 +519,4 @@ module.exports = {
   generateSingleImage,
   getModelInfo,
   FLUX_MODEL
-}; 
+};
