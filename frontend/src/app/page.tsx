@@ -53,8 +53,9 @@ export default function Home() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          images: productImages.images.map(img => img.url),
-          brand: selectedBrand.name
+          productImageUrls: productImages.images.map(img => img.url),
+          brandPrompt: selectedBrand.baseDescription,
+          brandId: selectedBrand.id
         })
       });
 
