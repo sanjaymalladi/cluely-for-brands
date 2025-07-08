@@ -89,7 +89,7 @@ async function generateSingleImageWithRetry(
         aspect_ratio: "1:1" as const,
         input_images: inputImages,
         output_format: "png" as const,
-        safety_tolerance: 5  // Increased tolerance
+        safety_tolerance: 2 as const
       };
       
       console.log(`🔄 Trying multi-image model with input:`, JSON.stringify(input, null, 2));
