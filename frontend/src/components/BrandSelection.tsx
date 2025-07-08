@@ -3,7 +3,6 @@
 import { Brand } from "@/lib/brands";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useState } from "react";
 
 interface BrandSelectionProps {
   brands: Brand[];

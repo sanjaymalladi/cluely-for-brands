@@ -230,7 +230,7 @@ export default function Home() {
               <Badge variant="secondary">Step 3 of 3</Badge>
               <h2 className="text-3xl font-bold">Ready to Generate</h2>
               <p className="text-lg text-muted-foreground">
-                Generate 4 unique variations in {selectedBrand.name}'s style
+                Generate 4 unique variations in {selectedBrand.name}&apos;s style
               </p>
             </div>
 
@@ -256,10 +256,10 @@ export default function Home() {
               </div>
               <div className="text-center space-y-4">
                 <h3 className="text-xl font-semibold">
-                  Transform your product with {selectedBrand.name}'s aesthetic
+                  Transform your product with {selectedBrand.name}&apos;s aesthetic
                 </h3>
                 <p className="text-muted-foreground">
-                  This will generate 4 unique variations that capture {selectedBrand.name}'s signature style and design philosophy.
+                  This will generate 4 unique variations that capture {selectedBrand.name}&apos;s signature style and design philosophy.
                 </p>
                 <div className="pt-4">
                   <Button

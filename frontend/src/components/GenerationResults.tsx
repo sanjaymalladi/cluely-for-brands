@@ -52,7 +52,7 @@ export function GenerationResults({
   };
 
   const handleShare = (imageUrl: string, platform: "twitter" | "linkedin") => {
-    const text = `Check out my product styled with ${selectedBrand.name}'s brand aesthetic! Made with Cluely for Brands ✨`;
+    const text = `Check out my product styled with ${selectedBrand.name}&apos;s brand aesthetic! Made with Cluely for Brands ✨`;
     const url = encodeURIComponent(window.location.href);
     
     let shareUrl = "";
@@ -125,7 +125,7 @@ export function GenerationResults({
           Your {selectedBrand.name} Style is Ready!
         </h2>
         <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-          Here are 4 unique variations of your product in {selectedBrand.name}'s signature aesthetic
+          Here are 4 unique variations of your product in {selectedBrand.name}&apos;s signature aesthetic
         </p>
       </div>
 
@@ -239,8 +239,8 @@ export function GenerationResults({
             <CardTitle className="text-green-800">Generation Successful!</CardTitle>
           </div>
           <CardDescription className="text-green-700">
-            Your images have been successfully transformed with {selectedBrand.name}'s brand aesthetic. 
-            Each variation captures unique elements of their design philosophy while maintaining your product's core features.
+            Your images have been successfully transformed with {selectedBrand.name}&apos;s brand aesthetic. 
+            Each variation captures unique elements of their design philosophy while maintaining your product&apos;s core features.
           </CardDescription>
         </CardHeader>
       </Card>
