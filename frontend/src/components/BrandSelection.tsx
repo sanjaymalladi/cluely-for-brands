@@ -16,8 +16,6 @@ export function BrandSelection({
   selectedBrand,
   onBrandSelect,
 }: BrandSelectionProps) {
-  const [hoveredBrand, setHoveredBrand] = useState<string | null>(null);
-
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {brands.map((brand) => (
@@ -29,8 +27,6 @@ export function BrandSelection({
               : 'hover:bg-muted/50'
           }`}
           onClick={() => onBrandSelect(brand)}
-          onMouseEnter={() => setHoveredBrand(brand.id)}
-          onMouseLeave={() => setHoveredBrand(null)}
         >
           <CardHeader className="pb-4">
             <div className="flex items-center justify-between">

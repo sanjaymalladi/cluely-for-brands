@@ -7,7 +7,7 @@ import ImageUploader from './ImageUploader';
 import { BrandSelection } from '../components/BrandSelection';
 import { GenerationResults } from '../components/GenerationResults';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { useTheme } from 'next-themes';
