@@ -24,14 +24,50 @@ export default function Home() {
   const [selectedBrand, setSelectedBrand] = useState<Brand | null>(null);
   const [generatedImages, setGeneratedImages] = useState<string[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [productAnalysis, setProductAnalysis] = useState<string>('');
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const { theme, setTheme } = useTheme();
 
   const brands = getAllBrands();
 
-  const handleImagesChange = (images: ProductImageSet) => {
+  const handleImagesChange = async (images: ProductImageSet) => {
     setProductImages(images);
     if (images.isComplete && images.images.length > 0) {
-      setAppState('brand-selection');
+      // Analyze the product images with Gemini
+      setIsAnalyzing(true);
+      try {
+        const analysisPromises = images.images.map(async (image) => {
+          const response = await fetch(`${API_BASE}/api/analyze-product`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              imageBase64: image.url.split(',')[1], // Remove data:image/...;base64, prefix
+              mimeType: 'image/jpeg'
+            })
+          });
+
+          if (!response.ok) {
+            throw new Error(`Analysis failed: ${response.status}`);
+          }
+
+          const data = await response.json();
+          return data.analysis;
+        });
+
+        const analyses = await Promise.all(analysisPromises);
+        const combinedAnalysis = analyses.join('\n\n');
+        setProductAnalysis(combinedAnalysis);
+        
+        setAppState('brand-selection');
+      } catch (error) {
+        console.error('Product analysis failed:', error);
+        // Continue to brand selection even if analysis fails
+        setAppState('brand-selection');
+      } finally {
+        setIsAnalyzing(false);
+      }
     }
   };
 
@@ -47,6 +83,25 @@ export default function Home() {
     setAppState('generating');
     
     try {
+      // Step 1: Generate brand-specific prompts using Gemini
+      const promptResponse = await fetch(`${API_BASE}/api/generate-brand-prompt`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          productAnalysis: productAnalysis,
+          brandData: selectedBrand
+        })
+      });
+
+      if (!promptResponse.ok) {
+        throw new Error(`Prompt generation failed: ${promptResponse.status}`);
+      }
+
+      const promptData = await promptResponse.json();
+      
+      // Step 2: Generate images using the brand prompts
       const response = await fetch(`${API_BASE}/api/generate-brand-images`, {
         method: 'POST',
         headers: {
@@ -54,7 +109,7 @@ export default function Home() {
         },
         body: JSON.stringify({
           productImageUrls: productImages.images.map(img => img.url),
-          brandPrompt: selectedBrand.baseDescription,
+          brandPrompt: promptData.brandPrompt,
           brandId: selectedBrand.id
         })
       });
@@ -171,6 +226,12 @@ export default function Home() {
               <CardHeader className="text-center pb-6"></CardHeader>
               <CardContent>
                 <ImageUploader onImagesChange={handleImagesChange} />
+                {isAnalyzing && (
+                  <div className="mt-4 text-center">
+                    <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full mx-auto mb-2" />
+                    <p className="text-sm text-muted-foreground">Analyzing your product...</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
