@@ -53,7 +53,7 @@ export default function TestPage() {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white p-8">
+    <div className="min-h-screen bg-background text-foreground p-8">
       <h1 className="text-4xl font-bold mb-8">React Interaction Test</h1>
       
       <ClientOnly>
@@ -66,7 +66,7 @@ export default function TestPage() {
             
             <button
               onClick={handleClick}
-              className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg transition-colors"
+              className="bg-primary hover:bg-primary/80 text-primary-foreground px-6 py-3 rounded-lg transition-colors"
             >
               Click Me - Test Interaction
             </button>
@@ -76,25 +76,25 @@ export default function TestPage() {
                 console.log("Console test");
                 alert("Direct alert test");
               }}
-              className="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg transition-colors ml-4"
+              className="bg-green-500 hover:bg-green-600 text-primary-foreground px-6 py-3 rounded-lg transition-colors ml-4"
             >
               Console & Alert Test
             </button>
           </div>
 
           {/* Image Combination Test */}
-          <div className="space-y-4 border-t border-white/20 pt-8">
+          <div className="space-y-4 border-t border-foreground/20 pt-8">
             <h2 className="text-2xl font-bold">Image Combination Test</h2>
-            <p className="text-white/70">Test the new image combination functionality using your uploaded images</p>
+            <p className="text-foreground/70">Test the new image combination functionality using your uploaded images</p>
             
             <button
               onClick={testImageCombination}
               disabled={isLoading}
-              className="bg-purple-500 hover:bg-purple-600 disabled:bg-purple-300 text-white px-6 py-3 rounded-lg transition-colors"
+              className="bg-purple-500 hover:bg-purple-600 disabled:bg-purple-300 text-primary-foreground px-6 py-3 rounded-lg transition-colors"
             >
               {isLoading ? (
                 <div className="inline-flex items-center gap-2">
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <div className="w-4 h-4 border-2 border-foreground border-t-transparent rounded-full animate-spin"></div>
                   <span>Combining Images...</span>
                 </div>
               ) : (
@@ -106,7 +106,7 @@ export default function TestPage() {
               <div className={`p-4 rounded-lg ${
                 combineStatus.includes('✅') ? 'bg-green-500/20 border border-green-500/50' :
                 combineStatus.includes('❌') ? 'bg-red-500/20 border border-red-500/50' :
-                'bg-blue-500/20 border border-blue-500/50'
+                'bg-purple-500/20 border border-purple-500/50'
               }`}>
                 <p>{combineStatus}</p>
               </div>
@@ -115,7 +115,7 @@ export default function TestPage() {
             {combinedImage && (
               <div className="space-y-2">
                 <h3 className="text-lg font-semibold">Combined Result:</h3>
-                <div className="bg-white p-4 rounded-lg">
+                <div className="bg-card p-4 rounded-lg">
                   <img 
                     src={combinedImage} 
                     alt="Combined Image Result" 
@@ -126,7 +126,7 @@ export default function TestPage() {
                     }}
                   />
                 </div>
-                <p className="text-sm text-white/70">Image URL: {combinedImage}</p>
+                <p className="text-sm text-foreground/70">Image URL: {combinedImage}</p>
               </div>
             )}
           </div>

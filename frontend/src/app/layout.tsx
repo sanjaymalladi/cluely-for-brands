@@ -1,4 +1,5 @@
 import './globals.css'
+import { ThemeProvider } from 'next-themes';
 
 export const metadata = {
   title: 'Cluely for Brands - Snap a product. Pick a brand. Get its vibe.',
@@ -11,9 +12,11 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
-      <body className="min-h-screen bg-white" suppressHydrationWarning={true}>
-        {children}
+    <html lang="en" suppressHydrationWarning>
+      <body className="min-h-screen bg-background" suppressHydrationWarning={true}>
+        <ThemeProvider attribute="class" defaultTheme="light" enableSystem={true}>
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   )

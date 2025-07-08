@@ -3,6 +3,10 @@
 import { Brand } from "@/lib/brands";
 import { ProductImageSet } from "@/types/app";
 import { useState } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 
 interface GenerationResultsProps {
   productImages: ProductImageSet;
@@ -48,7 +52,7 @@ export function GenerationResults({
   };
 
   const handleShare = (imageUrl: string, platform: "twitter" | "linkedin") => {
-    const text = `Check out my product styled with ${selectedBrand.name}&apos;s brand aesthetic! Made with Cluely for Brands ✨`;
+    const text = `Check out my product styled with ${selectedBrand.name}'s brand aesthetic! Made with Cluely for Brands ✨`;
     const url = encodeURIComponent(window.location.href);
     
     let shareUrl = "";
@@ -61,164 +65,185 @@ export function GenerationResults({
     window.open(shareUrl, "_blank", "width=600,height=400");
   };
 
-  return (
-    <div className="container mx-auto py-8 space-y-8">
-      {isGenerating ? (
-        // Loading State
-        <div className="card max-w-2xl mx-auto">
+  if (isGenerating) {
+    return (
+      <div className="max-w-2xl mx-auto space-y-8">
+        <div className="text-center space-y-4">
+          <Badge variant="secondary">Generating Images</Badge>
+          <h2 className="text-3xl font-bold">Creating Your {selectedBrand.name} Style</h2>
+          <p className="text-lg text-muted-foreground">
+            Our AI is working its magic to transform your product
+          </p>
+        </div>
+
+        <Card className="p-8">
           <div className="text-center space-y-6">
+            {/* Visual Preview */}
             <div className="flex items-center justify-center gap-6">
-              <div className="w-16 h-16 relative">
+              <div className="w-20 h-20 rounded-lg overflow-hidden border">
                 <img
                   src={primaryImage.previewUrl || primaryImage.url}
                   alt="Your product"
-                  className="w-full h-full object-cover rounded-lg"
+                  className="w-full h-full object-cover"
                 />
               </div>
-              <span className="text-gray-400 text-2xl">→</span>
-              <div className="brand-logo w-16 h-16 text-xl">
-                {selectedBrand.name.charAt(0)}
+              <div className="text-3xl text-muted-foreground">→</div>
+              <div className="w-20 h-20 rounded-lg overflow-hidden border bg-muted flex items-center justify-center">
+                <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full" />
               </div>
             </div>
             
-            <div>
-              <h2 className="text-2xl lg:text-3xl font-bold text-white mb-4">
-                <span className="mr-2">✨</span>
-                Generating your {selectedBrand.name} vibe...
-              </h2>
-              <div className="badge mb-4">
-                AI is working its magic
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              <div className="progress max-w-xs mx-auto">
-                <div className="progress-bar" style={{ width: '65%' }}></div>
-              </div>
-              <p className="text-sm text-gray-400">
-                Creating 4 unique variations • Usually takes ~30 seconds
+            {/* Progress */}
+            <div className="space-y-3">
+              <Progress value={65} className="w-full max-w-xs mx-auto" />
+              <p className="text-sm text-muted-foreground">
+                Generating 4 unique variations • Usually takes ~30 seconds
               </p>
             </div>
             
-            <div className="flex justify-center">
-              <div className="animate-spin rounded-full h-6 w-6 border-2 border-purple-500 border-t-transparent"></div>
+            {/* Status */}
+            <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg">
+              <div className="flex items-center justify-center gap-2 text-primary">
+                <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
+                <span className="font-medium">AI is creating your {selectedBrand.name} variations</span>
+              </div>
             </div>
           </div>
-        </div>
-      ) : (
-        // Results State
-        <div className="space-y-8">
-          <div className="text-center">
-            <h2 className="text-3xl lg:text-4xl font-bold text-white mb-4">
-              <span className="mr-2">✨</span>
-              Your {selectedBrand.name} vibe is ready!
-            </h2>
-            <p className="text-lg text-gray-400 max-w-2xl mx-auto">
-              Here are unique variations of your product in {selectedBrand.name}&apos;s signature style
-            </p>
-          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="text-center space-y-4">
+        <Badge variant="default" className="bg-green-100 text-green-800 border-green-200">
+          ✨ Generation Complete
+        </Badge>
+        <h2 className="text-3xl font-bold">
+          Your {selectedBrand.name} Style is Ready!
+        </h2>
+        <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+          Here are 4 unique variations of your product in {selectedBrand.name}'s signature aesthetic
+        </p>
+      </div>
+
+      {/* Results Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-6xl mx-auto">
+        {generatedImages.map((imageUrl, index) => {
+          // Validate image URL
+          if (!imageUrl || typeof imageUrl !== 'string' || imageUrl.length < 10) {
+            return (
+              <Card key={index} className="aspect-square">
+                <CardContent className="h-full flex items-center justify-center">
+                  <div className="text-center text-muted-foreground">
+                    <p>Image failed to load</p>
+                    <p className="text-sm mt-1">URL: {String(imageUrl).substring(0, 50)}...</p>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          }
           
-          {/* Results Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-6xl mx-auto">
-            {generatedImages.map((imageUrl, index) => {
-              console.log(`🖼️ Rendering image ${index + 1}:`, imageUrl);
-              
-              // Validate image URL
-              if (!imageUrl || typeof imageUrl !== 'string' || imageUrl.length < 10) {
-                console.error(`❌ Invalid image URL at index ${index}:`, imageUrl);
-                return (
-                  <div key={index} className="card aspect-square">
-                    <div className="h-full flex items-center justify-center">
-                      <div className="text-center text-gray-500">
-                        <p>Image failed to load</p>
-                        <p className="text-sm mt-1">URL: {String(imageUrl).substring(0, 50)}...</p>
-                      </div>
-                    </div>
+          return (
+            <Card key={index} className="group overflow-hidden hover:shadow-lg transition-all duration-200">
+              <CardContent className="p-0">
+                <div className="relative">
+                  <div className="aspect-square overflow-hidden">
+                    <img
+                      src={imageUrl}
+                      alt={`${selectedBrand.name} style variation ${index + 1}`}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
                   </div>
-                );
-              }
-              
-              return (
-                <div key={index} className="card group overflow-hidden hover-lift cursor-pointer">
-                  <div className="relative">
-                    <div className="aspect-square overflow-hidden rounded-lg">
-                      <img
-                        src={imageUrl}
-                        alt={`${selectedBrand.name} style variation ${index + 1}`}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
-                      />
-                    </div>
-                    
-                    {/* Overlay with actions */}
-                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
-                      <button
-                        onClick={() => handleDownloadSingle(imageUrl, index)}
-                        disabled={downloadingIndex === index}
-                        className="btn btn-secondary"
-                      >
-                        {downloadingIndex === index ? (
-                          <>
-                            <span className="animate-spin mr-2">⟳</span>
-                            Downloading...
-                          </>
-                        ) : (
-                          <>
-                            <span className="mr-2">⬇️</span>
-                            Download
-                          </>
-                        )}
-                      </button>
-                    </div>
-                    
-                    {/* Variation Badge */}
-                    <div className="badge absolute top-3 left-3">
-                      #{index + 1}
-                    </div>
+                  
+                  {/* Overlay with actions */}
+                  <div className="absolute inset-0 bg-foreground/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
+                    <Button
+                      onClick={() => handleDownloadSingle(imageUrl, index)}
+                      disabled={downloadingIndex === index}
+                      variant="secondary"
+                      size="sm"
+                    >
+                      {downloadingIndex === index ? (
+                        <>
+                          <div className="animate-spin w-4 h-4 border-2 border-current border-t-transparent rounded-full mr-2" />
+                          Downloading...
+                        </>
+                      ) : (
+                        <>
+                          <span className="mr-2">⬇️</span>
+                          Download
+                        </>
+                      )}
+                    </Button>
                   </div>
+                  
+                  {/* Variation Badge */}
+                  <Badge className="absolute top-3 left-3" variant="outline">
+                    Variation {index + 1}
+                  </Badge>
                 </div>
-              );
-            })}
-          </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+      
+      {/* Action Buttons */}
+      <Card className="p-6">
+        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+          <Button onClick={onDownloadAll} size="lg" className="w-full sm:w-auto">
+            <span className="mr-2">📦</span>
+            Download All Images
+          </Button>
           
-          {/* Action Buttons */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center max-w-4xl mx-auto">
-            <button onClick={onDownloadAll} className="btn btn-primary btn-lg">
-              <span className="mr-2">📦</span>
-              Download All
-            </button>
-            
-            <button 
-              onClick={() => handleShare(generatedImages[0], "twitter")}
-              className="btn btn-secondary btn-lg"
-            >
-              <span className="mr-2">🐦</span>
-              Share on Twitter
-            </button>
-            
-            <button 
-              onClick={() => handleShare(generatedImages[0], "linkedin")}
-              className="btn btn-secondary btn-lg"
-            >
-              <span className="mr-2">💼</span>
-              Share on LinkedIn
-            </button>
-          </div>
+          <Button 
+            onClick={() => handleShare(generatedImages[0], "twitter")}
+            variant="outline"
+            size="lg"
+            className="w-full sm:w-auto"
+          >
+            <span className="mr-2">🐦</span>
+            Share on Twitter
+          </Button>
           
-          {/* Try Another Brand */}
-          <div className="text-center pt-8 border-t border-gray-700">
-            <p className="text-gray-400 mb-4">
-              Want to try a different brand aesthetic?
-            </p>
-            <button 
-              onClick={onTryAnotherBrand}
-              className="btn btn-secondary"
-            >
-              <span className="mr-2">🎨</span>
-              Try Another Brand
-            </button>
-          </div>
+          <Button 
+            onClick={() => handleShare(generatedImages[0], "linkedin")}
+            variant="outline"
+            size="lg"
+            className="w-full sm:w-auto"
+          >
+            <span className="mr-2">💼</span>
+            Share on LinkedIn
+          </Button>
+          
+          <Button 
+            onClick={onTryAnotherBrand}
+            variant="secondary"
+            size="lg"
+            className="w-full sm:w-auto"
+          >
+            <span className="mr-2">🎨</span>
+            Try Another Brand
+          </Button>
         </div>
-      )}
+      </Card>
+
+      {/* Success Message */}
+      <Card className="bg-green-50 border-green-200">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <span className="text-2xl">🎉</span>
+            <CardTitle className="text-green-800">Generation Successful!</CardTitle>
+          </div>
+          <CardDescription className="text-green-700">
+            Your images have been successfully transformed with {selectedBrand.name}'s brand aesthetic. 
+            Each variation captures unique elements of their design philosophy while maintaining your product's core features.
+          </CardDescription>
+        </CardHeader>
+      </Card>
     </div>
   );
 } 

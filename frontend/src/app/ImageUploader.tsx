@@ -2,6 +2,12 @@
 
 import { useState, useTransition } from 'react';
 import { ProductImageSet, ProductImage } from '../types/app';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { useTheme } from "next-themes";
+import { useEffect } from "react";
+import { Sun, Moon } from "lucide-react";
 
 // Using Vercel Functions - no backend URL needed (empty string for relative paths)
 const API_BASE = '';
@@ -95,6 +101,27 @@ function stitchImages(images: { url: string; width: number; height: number }[]):
   });
 }
 
+export function ThemeToggle() {
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) return null; // Prevents hydration mismatch
+
+  return (
+    <button
+      aria-label="Toggle theme"
+      className="rounded-full p-2 hover:bg-muted transition-colors"
+      onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+    >
+      {theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+    </button>
+  );
+}
+
 export default function ImageUploader({ onImagesChange }: ImageUploaderProps) {
   const [images, setImages] = useState<ProductImageSet>({
     images: [],
@@ -123,10 +150,7 @@ export default function ImageUploader({ onImagesChange }: ImageUploaderProps) {
             const formData = new FormData();
             formData.append('file', file);
             
-            console.log('📤 Uploading file to backend:', file.name);
-            
             const uploadUrl = `${API_BASE}/api/upload/single`;
-            console.log('🔗 Upload URL:', uploadUrl);
             
             const uploadResponse = await fetch(uploadUrl, {
               method: 'POST',
@@ -138,7 +162,6 @@ export default function ImageUploader({ onImagesChange }: ImageUploaderProps) {
             }
             
             const uploadResult = await uploadResponse.json();
-            console.log('✅ File uploaded successfully:', uploadResult);
             
             return {
               url: uploadResult.url,
@@ -154,7 +177,6 @@ export default function ImageUploader({ onImagesChange }: ImageUploaderProps) {
         // If we have 2 images, create a stitched version
         let finalImages: ProductImage[] = uploadedImages;
         if (uploadedImages.length === 2) {
-          console.log('🔗 Stitching 2 images together...');
           try {
             const stitchedImage = await stitchImages(uploadedImages);
             
@@ -175,7 +197,6 @@ export default function ImageUploader({ onImagesChange }: ImageUploaderProps) {
                     formData.append('file', blob, 'stitched-image.png');
                     
                     const uploadUrl = `${API_BASE}/api/upload/single`;
-                    console.log('🔗 Stitched image upload URL:', uploadUrl);
                     
                     const uploadResponse = await fetch(uploadUrl, {
                       method: 'POST',
@@ -196,14 +217,12 @@ export default function ImageUploader({ onImagesChange }: ImageUploaderProps) {
                       };
                       finalImages = [stitchedProductImage];
                       
-                      console.log('✅ Stitched image uploaded successfully');
                       resolve();
                     } else {
-                      console.error('Failed to upload stitched image');
-                      resolve(); // Continue with original images
+                      reject(new Error('Failed to upload stitched image'));
                     }
                   } else {
-                    resolve();
+                    reject(new Error('Failed to create stitched blob'));
                   }
                 }, 'image/png', 0.95);
               };
@@ -212,22 +231,21 @@ export default function ImageUploader({ onImagesChange }: ImageUploaderProps) {
               img.src = stitchedImage.url;
             });
           } catch (error) {
-            console.error('Error stitching images:', error);
-            // Continue with original images if stitching fails
+            console.warn('Failed to stitch images, using individual images:', error);
           }
         }
 
-        const newImages = {
+        const newImageSet: ProductImageSet = {
           images: finalImages,
           isComplete: true
         };
-        
-        setImages(newImages);
-        onImagesChange(newImages);
-        
+
+        setImages(newImageSet);
+        onImagesChange(newImageSet);
+
       } catch (error) {
-        console.error('Error uploading images:', error);
-        alert('Error uploading images. Please try again.');
+        console.error('Upload failed:', error);
+        alert('Upload failed. Please try again.');
       }
     });
   }
@@ -235,8 +253,7 @@ export default function ImageUploader({ onImagesChange }: ImageUploaderProps) {
   function handleDrop(e: React.DragEvent<HTMLDivElement>) {
     e.preventDefault();
     setIsDragOver(false);
-    const files = e.dataTransfer.files;
-    handleFiles(files);
+    handleFiles(e.dataTransfer.files);
   }
 
   function handleDragOver(e: React.DragEvent<HTMLDivElement>) {
@@ -254,137 +271,114 @@ export default function ImageUploader({ onImagesChange }: ImageUploaderProps) {
   }
 
   function removeImage(index: number) {
-    const newImages = {
-      images: images.images.filter((_, i) => i !== index),
-      isComplete: images.images.length > 1
+    const newImages = images.images.filter((_, i) => i !== index);
+    const newImageSet: ProductImageSet = {
+      images: newImages,
+      isComplete: newImages.length > 0
     };
-    setImages(newImages);
-    onImagesChange(newImages);
+    setImages(newImageSet);
+    onImagesChange(newImageSet);
   }
 
   return (
-    <div className="w-full max-w-4xl mx-auto">
-      <div className="mb-8">
-        <h2 className="text-2xl font-bold text-white mb-3">
-          📸 Upload Your Product Images
-        </h2>
-        <p className="text-gray-400 text-lg leading-relaxed">
-          Drop 1-2 product images here or click to browse. We&apos;ll analyze them and generate brand variations.
-          {images.images.length === 0 && (
-            <span className="block mt-2 text-sm text-gray-500">
-                              💡 Tip: Upload 2 images and we&apos;ll automatically stitch them together for better results!
-            </span>
-          )}
-        </p>
-      </div>
-
+    <div className="space-y-6">
       {/* Upload Area */}
       <div
-        className={`upload-area ${isDragOver ? 'dragover' : ''}`}
+        className={`upload-zone ${isDragOver ? 'dragover' : ''} ${
+          isPending ? 'opacity-50 pointer-events-none' : ''
+        }`}
         onDrop={handleDrop}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onClick={() => document.getElementById('file-input')?.click()}
       >
-        <input
-          id="file-input"
-          type="file"
-          accept="image/*"
-          multiple
-          onChange={handleFileInput}
-          className="hidden"
-          disabled={isPending}
-        />
-        
-        {isPending ? (
-          <div className="text-center">
-            <div className="loading-spinner mx-auto mb-4"></div>
-            <p className="text-lg text-gray-300 mb-2">
-              {images.images.length === 2 ? 'Stitching images together...' : 'Uploading images...'}
-            </p>
-            <p className="text-sm text-gray-500">
-              {images.images.length === 2 ? 'Creating a combined image for better AI analysis' : 'Please wait while we process your images'}
-            </p>
-          </div>
-        ) : (
-          <div className="text-center">
-            <div className="text-6xl mb-4 opacity-80">
-              {isDragOver ? '📥' : '📸'}
-            </div>
-            <p className="text-xl text-gray-300 mb-2">
-              {isDragOver ? 'Drop your images here' : 'Drop your product images here'}
-            </p>
-            <p className="text-sm text-gray-500 mb-4">
-              or click to browse (max 2 images)
-            </p>
-            <div className="inline-flex items-center gap-2 text-sm text-gray-400">
-              <span>📱</span>
-              <span>Supports: JPG, PNG, WebP</span>
-            </div>
-          </div>
-        )}
+        <div className="text-center space-y-4">
+          {isPending ? (
+            <>
+              <div className="w-16 h-16 mx-auto bg-primary/10 rounded-full flex items-center justify-center">
+                <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold">Uploading...</h3>
+                <p className="text-muted-foreground">Please wait while we process your images</p>
+              </div>
+            </>
+          ) : (
+            <>
+              <div>
+                <h3 className="text-lg font-semibold">
+                  {images.images.length > 0 ? 'Add More Images' : 'Upload 1-2 high-quality images of your product for best results'}
+                </h3>
+                <p className="text-muted-foreground">
+                  Drag and drop your images here, or click to browse
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Supports JPG, PNG • Max 2 images • 10MB each
+                </p>
+              </div>
+              <Button variant="outline" className="mt-4">
+                Choose Files
+              </Button>
+            </>
+          )}
+        </div>
       </div>
 
-      {/* Image Previews */}
+      <input
+        id="file-input"
+        type="file"
+        multiple
+        accept="image/*"
+        className="hidden"
+        onChange={handleFileInput}
+      />
+
+      {/* Preview Grid */}
       {images.images.length > 0 && (
-        <div className="mt-8">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-xl font-semibold text-white">
-              {images.images[0].type === 'stitched' ? '🔗 Stitched Image' : '📸 Uploaded Images'}
-            </h3>
-            {images.images[0].type === 'stitched' && (
-              <div className="badge">
-                Auto-combined for better AI analysis
-              </div>
-            )}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h4 className="text-lg font-semibold">Uploaded Images</h4>
+            <Badge variant="secondary">
+              {images.images.length} image{images.images.length > 1 ? 's' : ''}
+            </Badge>
           </div>
           
-          <div className="grid grid-cols-1 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {images.images.map((image, index) => (
-              <div key={index} className="card group relative">
-                <div className="aspect-video rounded-lg overflow-hidden bg-gray-800 mb-4">
-                  <img 
-                    src={image.previewUrl || image.url} 
-                    alt={`Product ${index + 1}`}
-                    className="w-full h-full object-contain"
-                  />
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <div className="text-sm text-gray-400">
-                    <p className="font-medium">
-                      {image.type === 'stitched' ? '🔗 Combined Image' : `📸 Image ${index + 1}`}
-                    </p>
-                    <p className="text-xs mt-1">
-                      {image.width} × {image.height}px
-                    </p>
+              <Card key={index} className="overflow-hidden">
+                <CardContent className="p-0">
+                  <div className="relative group">
+                    <div className="aspect-square">
+                      <img
+                        src={image.previewUrl || image.url}
+                        alt={`Upload ${index + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    
+                    {/* Overlay */}
+                    <div className="absolute inset-0 bg-foreground/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => removeImage(index)}
+                      >
+                        Remove
+                      </Button>
+                    </div>
+
+                    {/* Type Badge */}
+                    <Badge 
+                      className="absolute top-2 left-2"
+                      variant={image.type === 'stitched' ? 'default' : 'secondary'}
+                    >
+                      {image.type === 'stitched' ? '🔗 Combined' : `📷 Image ${index + 1}`}
+                    </Badge>
                   </div>
-                  
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      removeImage(index);
-                    }}
-                    className="btn btn-secondary px-4 py-2 text-sm opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    🗑️ Remove
-                  </button>
-                </div>
-              </div>
+                </CardContent>
+              </Card>
             ))}
           </div>
-          
-          {images.isComplete && (
-            <div className="mt-6 p-4 bg-green-900/20 border border-green-700 rounded-lg">
-              <div className="flex items-center gap-2 text-green-400">
-                <span>✅</span>
-                <span className="font-medium">Ready for analysis!</span>
-              </div>
-              <p className="text-sm text-green-300 mt-1">
-                Your images are uploaded and ready. Click &quot;Analyze Product&quot; to continue.
-              </p>
-            </div>
-          )}
         </div>
       )}
     </div>

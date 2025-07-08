@@ -2,6 +2,9 @@ import { Brand } from "../lib/brands";
 
 export type AppStep = 1 | 2 | 3;
 
+// New app state type for the redesigned flow
+export type AppState = 'upload' | 'brand-selection' | 'confirm-generation' | 'generating' | 'results';
+
 export interface ProductImage {
   url: string;
   previewUrl?: string; // Blob URL for immediate preview
@@ -26,7 +29,8 @@ export interface GenerationResult {
   createdAt: Date;
 }
 
-export interface AppState {
+// Legacy app state interface - keeping for compatibility
+export interface LegacyAppState {
   currentStep: AppStep;
   productImages: ProductImageSet | null;
   selectedBrand: Brand | null;
@@ -37,20 +41,18 @@ export interface AppState {
 }
 
 export interface BrandSelectionProps {
-  productImages: ProductImageSet;
+  brands: Brand[];
   selectedBrand: Brand | null;
   onBrandSelect: (brand: Brand) => void;
-  onGenerate: () => void;
 }
 
 export interface GenerationResultsProps {
   productImages: ProductImageSet;
   selectedBrand: Brand;
-  generatedImages: GenerationResult[];
+  generatedImages: string[];
   isGenerating: boolean;
   onTryAnotherBrand: () => void;
   onDownloadAll: () => void;
-  onShareResult: (result: GenerationResult) => void;
 }
 
 export interface ProductAnalysis {
@@ -63,6 +65,5 @@ export interface ProductAnalysis {
 }
 
 export interface ImageUploadProps {
-  onImagesUploaded: (imageSet: ProductImageSet) => void;
-  isAnalyzing: boolean;
+  onImagesChange: (imageSet: ProductImageSet) => void;
 } 
